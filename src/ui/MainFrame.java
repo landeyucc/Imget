@@ -63,7 +63,7 @@ public class MainFrame extends JFrame {
         progressGbc.weightx = 1.0;
         progressGbc.weighty = 0.0;
         progressGbc.fill = GridBagConstraints.HORIZONTAL;
-        progressGbc.insets = new Insets(0, 0, 10, 0);
+        progressGbc.insets = new Insets(0, 20, 20, 20);
         backgroundPanel.add(progressPanel, progressGbc);
 
         // 创建关于按钮面板
@@ -100,19 +100,19 @@ public class MainFrame extends JFrame {
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
         titleLabel.setForeground(Constants.TEXT_COLOR);
         
-        JLabel descriptionLabel = new JLabel("一个简易的图片api下载器");
+        JLabel descriptionLabel = new JLabel("一个高效的图片api下载器。简易，简约，简单。");
         descriptionLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         descriptionLabel.setForeground(Constants.TEXT_COLOR);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 0;
+        gbc.gridy = -1; // 将标题移到最顶部
         gbc.gridwidth = 2;
-        gbc.insets = new Insets(0, 0, 20, 0);
+        gbc.insets = new Insets(0, 0, 30, 0); // 增加底部间距
         panel.add(titleLabel, gbc);
         
-        gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 15, 0);
+        gbc.gridy = 0; // 描述文字紧跟标题
+        gbc.insets = new Insets(60, 0, 40, 0); // 增加与下方参数区域的间距
         panel.add(descriptionLabel, gbc);
     }
 
@@ -314,9 +314,9 @@ public class MainFrame extends JFrame {
             "<h2 style='margin: 0;'>Imget</h2>" +
             "<p style='margin: 10px 0;'>版本：%s</p>" +
             "<p style='margin: 10px 0;'>作者：%s</p>" +
-            "<p style='margin: 10px 0;'><a href='%s'>GitHub 仓库</a></p>" +
+            "<p style='margin: 10px 0;'><a href='%s'>程序官网</a>&nbsp;&nbsp;&nbsp;<a href='%s'>GitHub 仓库</a></p>" +
             "</div></body></html>",
-            Constants.VERSION, Constants.AUTHOR, Constants.GITHUB_URL
+            Constants.VERSION, Constants.AUTHOR, Constants.WEBSITE, Constants.GITHUB_URL
         );
         editorPane.setText(htmlContent);
 
@@ -336,4 +336,4 @@ public class MainFrame extends JFrame {
         dialog.setResizable(false);
         dialog.setVisible(true);
     }
-} 
+}

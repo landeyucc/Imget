@@ -18,10 +18,7 @@ public class UIUtils {
     }
 
     public static Border createStyledBorder() {
-        return BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Constants.ACCENT_COLOR, 1),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        );
+        return BorderFactory.createEmptyBorder(5, 10, 5, 10);
     }
 
     public static JTextField createStyledTextField(int width, int height) {
@@ -52,6 +49,7 @@ public class UIUtils {
         button.setBackground(Constants.ACCENT_COLOR);
         button.setForeground(Constants.TEXT_COLOR);
         button.setFocusPainted(false);
+        button.setBorderPainted(false);
         button.setFont(Constants.BOLD_FONT);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
@@ -87,6 +85,16 @@ public class UIUtils {
     }
 
     public static void showErrorMessage(String message) {
+        // 设置错误对话框的样式
+        UIManager.put("OptionPane.background", Constants.BACKGROUND_COLOR);
+        UIManager.put("OptionPane.messageForeground", Constants.TEXT_COLOR);
+        UIManager.put("Panel.background", Constants.BACKGROUND_COLOR);
+        UIManager.put("Button.background", Constants.ACCENT_COLOR);
+        UIManager.put("Button.foreground", Constants.TEXT_COLOR);
+        UIManager.put("Button.select", Constants.HOVER_COLOR);
+        UIManager.put("Button.focus", Constants.ACCENT_COLOR);
+        UIManager.put("Button.border", BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        
         JOptionPane.showMessageDialog(null, message, "错误", JOptionPane.ERROR_MESSAGE);
     }
 
@@ -118,4 +126,4 @@ public class UIUtils {
         
         return image;
     }
-} 
+}

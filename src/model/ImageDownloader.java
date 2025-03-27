@@ -62,41 +62,93 @@ public class ImageDownloader {
 
     private static boolean downloadImage(String imageUrl, String imageName,
             JProgressBar progressBar, JLabel currentProgressLabel) {
-        try {
-            URL url = new URL(imageUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            
-            int fileSize = connection.getContentLength();
-            InputStream inputStream = connection.getInputStream();
-            BufferedInputStream bis = new BufferedInputStream(inputStream);
-            java.io.FileOutputStream fos = new java.io.FileOutputStream(imageName);
-            
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            long totalBytesRead = 0;
-            
-            while ((bytesRead = bis.read(buffer)) != -1) {
-                fos.write(buffer, 0, bytesRead);
-                totalBytesRead += bytesRead;
-                
-                if (fileSize > 0) {
-                    final int progress = (int) ((totalBytesRead * 100) / fileSize);
+        int maxRetries = 10;
+        int retryCount = 0;
+        int retryInterval = 5000; // 5秒
+        JLabel retryLabel = new JLabel();
+        retryLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        
+        while (retryCount <= maxRetries) {
+            try {
+                if (retryCount > 0) {
+                    final int currentRetry = retryCount;
                     SwingUtilities.invokeLater(() -> {
-                        progressBar.setValue(progress);
-                        currentProgressLabel.setText("当前文件进度: " + progress + "%");
+                        if (!progressBar.getParent().isAncestorOf(retryLabel)) {
+                            progressBar.getParent().add(retryLabel);
+                            progressBar.getParent().revalidate();
+                        }
+                        retryLabel.setText("重试次数: " + currentRetry + "/" + maxRetries);
                     });
+                    Thread.sleep(retryInterval);
+                }
+                
+                URL url = new URL(imageUrl);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                // 先发送HEAD请求检查Content-Type
+                connection.setRequestMethod("HEAD");
+                String contentType = connection.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    SwingUtilities.invokeLater(() -> {
+                        currentProgressLabel.setText("错误: 非图片类型文件 (" + contentType + ")");
+                    });
+                    return false;
+                }
+                
+                // 重新建立连接用于下载
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                
+                int fileSize = connection.getContentLength();
+                InputStream inputStream = connection.getInputStream();
+                BufferedInputStream bis = new BufferedInputStream(inputStream);
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(imageName);
+                
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                long totalBytesRead = 0;
+                
+                while ((bytesRead = bis.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                    
+                    if (fileSize > 0) {
+                        final int progress = (int) ((totalBytesRead * 100) / fileSize);
+                        SwingUtilities.invokeLater(() -> {
+                            progressBar.setValue(progress);
+                            currentProgressLabel.setText("当前文件进度: " + progress + "%");
+                        });
+                    }
+                }
+                
+                fos.close();
+                bis.close();
+                inputStream.close();
+                
+                SwingUtilities.invokeLater(() -> {
+                    if (progressBar.getParent().isAncestorOf(retryLabel)) {
+                        progressBar.getParent().remove(retryLabel);
+                        progressBar.getParent().revalidate();
+                        progressBar.getParent().repaint();
+                    }
+                });
+                
+                return true;
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+                retryCount++;
+                if (retryCount > maxRetries) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (progressBar.getParent().isAncestorOf(retryLabel)) {
+                            progressBar.getParent().remove(retryLabel);
+                            progressBar.getParent().revalidate();
+                            progressBar.getParent().repaint();
+                        }
+                    });
+                    return false;
                 }
             }
-            
-            fos.close();
-            bis.close();
-            inputStream.close();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
         }
+        return false;
     }
 
     private static String calculateMD5(File file) throws IOException, NoSuchAlgorithmException {
@@ -131,4 +183,4 @@ public class ImageDownloader {
         writer.write("}");
         writer.close();
     }
-} 
+}
