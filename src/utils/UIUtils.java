@@ -1,0 +1,121 @@
+package src.utils;
+
+import javax.swing.*;
+import javax.swing.border.Border;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
+public class UIUtils {
+    public static JLabel createStyledLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setForeground(Constants.TEXT_COLOR);
+        label.setFont(Constants.NORMAL_FONT);
+        return label;
+    }
+
+    public static Border createStyledBorder() {
+        return BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Constants.ACCENT_COLOR, 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        );
+    }
+
+    public static JTextField createStyledTextField(int width, int height) {
+        JTextField field = new JTextField();
+        field.setPreferredSize(new Dimension(width, height));
+        field.setBackground(Constants.COMPONENT_BG_COLOR);
+        field.setForeground(Constants.TEXT_COLOR);
+        field.setCaretColor(Constants.TEXT_COLOR);
+        field.setBorder(createStyledBorder());
+        field.setFont(Constants.NORMAL_FONT);
+        return field;
+    }
+
+    public static JProgressBar createStyledProgressBar() {
+        JProgressBar bar = new JProgressBar(0, 100);
+        bar.setPreferredSize(new Dimension(400, 25));
+        bar.setStringPainted(true);
+        bar.setBackground(Constants.COMPONENT_BG_COLOR);
+        bar.setForeground(Constants.PROGRESS_COLOR);
+        bar.setFont(Constants.SMALL_FONT);
+        bar.setBorderPainted(false);
+        bar.setBorder(createStyledBorder());
+        return bar;
+    }
+
+    public static JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(Constants.ACCENT_COLOR);
+        button.setForeground(Constants.TEXT_COLOR);
+        button.setFocusPainted(false);
+        button.setFont(Constants.BOLD_FONT);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(Constants.HOVER_COLOR);
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(Constants.ACCENT_COLOR);
+            }
+        });
+        
+        return button;
+    }
+
+    public static void setUIColors() {
+        UIManager.put("Panel.background", Constants.BACKGROUND_COLOR);
+        UIManager.put("ProgressBar.selectionBackground", Constants.TEXT_COLOR);
+        UIManager.put("ProgressBar.selectionForeground", Constants.TEXT_COLOR);
+        UIManager.put("TextField.selectionBackground", Constants.ACCENT_COLOR);
+        UIManager.put("TextField.selectionForeground", Color.WHITE);
+    }
+
+    public static void setUIFont() {
+        UIManager.put("Label.font", Constants.NORMAL_FONT);
+        UIManager.put("TextField.font", Constants.NORMAL_FONT);
+        UIManager.put("Button.font", Constants.BOLD_FONT);
+        UIManager.put("ProgressBar.font", Constants.SMALL_FONT);
+        UIManager.put("OptionPane.messageFont", Constants.NORMAL_FONT);
+        UIManager.put("OptionPane.buttonFont", Constants.NORMAL_FONT);
+        UIManager.put("FileChooser.font", Constants.NORMAL_FONT);
+    }
+
+    public static void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(null, message, "错误", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static BufferedImage loadIcon(String iconName) throws IOException {
+        BufferedImage image = null;
+        
+        // 方式1：直接从文件加载
+        File iconFile = new File(iconName);
+        if (iconFile.exists()) {
+            try {
+                image = ImageIO.read(iconFile);
+            } catch (IOException ex) {
+                System.out.println("直接加载图标失败: " + ex.getMessage());
+            }
+        }
+        
+        // 方式2：从类路径加载
+        if (image == null) {
+            try {
+                InputStream is = UIUtils.class.getResourceAsStream("/" + iconName);
+                if (is != null) {
+                    image = ImageIO.read(is);
+                    is.close();
+                }
+            } catch (IOException ex) {
+                System.out.println("从类路径加载图标失败: " + ex.getMessage());
+            }
+        }
+        
+        return image;
+    }
+} 
