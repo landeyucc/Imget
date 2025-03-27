@@ -1,1 +1,4 @@
 full.java
+/build
+*.jar
+Run.bat
