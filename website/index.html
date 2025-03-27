@@ -3,39 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Imget - 高效的图片API下载工具</title>
+  <title>Imget - 简约图片API下载工具</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Roboto', sans-serif; line-height: 1.6; background-color: #f5f5f5; }
-    .header { position: fixed; top: 0; left: 0; right: 0; background: #1976d2; color: white; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1000; }
-    .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .nav-links a { color: white; text-decoration: none; margin-left: 2rem; }
-    .section { padding: 5rem 1rem; min-height: 100vh; display: flex; align-items: center; }
-    .container { max-width: 1200px; margin: 0 auto; width: 100%; }
-    .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-    .hero-content h1 { font-size: 3rem; margin-bottom: 1rem; color: #1976d2; }
-    .hero-content p { margin-bottom: 2rem; color: #666; }
-    .btn { display: inline-block; padding: 1rem 2rem; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; transition: background 0.3s; }
-    .btn:hover { background: #1565c0; }
-    .features, .usage { padding: 5rem 1rem; }
-    .features { background: white; }
-    .section-title { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: #1976d2; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-    .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 100%; }
-    .card h3 { color: #1976d2; margin-bottom: 1rem; }
-    .github-icon { width: 24px; height: 24px; fill: currentColor; }
-    @media (max-width: 768px) {
-      .hero { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
-    }
-  </style>
+  <link rel="stylesheet" href="imget_wcss.css" />
 </head>
 <body>
   <header class="header">
     <div class="header-content">
-      <h2>Imget</h2>
+      <h2>ColdSea - Imget</h2>
       <nav class="nav-links">
         <a href="#home">首页</a>
         <a href="#features">功能特点</a>
@@ -59,14 +35,14 @@
           <a href="#download" class="btn">立即下载</a>
         </div>
         <div class="hero-image">
-          <img src="/Imget.png" alt="Imget Screenshot" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+          <img src="https://files-plus.coldsea.vip/gitcp/imget/app.jpg" alt="Imget Screenshot" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
         </div>
       </div>
     </div>
   </section>
 
-  <section id="features" class="features">
-    <div class="container">
+  <section class="features">
+    <div class="container" id="features">
       <h2 class="section-title">功能特点</h2>
       <div class="grid">
         <div class="card">
@@ -81,33 +57,25 @@
           <h3>兼容性广泛</h3>
           <p>采用Java编写，具有良好的跨平台特性，能够在多种操作系统上运行，如Windows、Linux和macOS。</p>
         </div>
-        <div class="card">
-          <h3>可视化窗口</h3>
-          <p>编写了图形化窗口，便于快捷使用，告别终端操作。</p>
-        </div>
       </div>
     </div>
+	
+	<div class="container" id="usage">
+	  <h2 class="section-title">使用场景</h2>
+	  <div class="grid">
+	    <div class="card">
+	      <p>从图片托管服务的API获取用户上传的图片资源，用于本地备份或进一步处理。</p>
+	    </div>
+	    <div class="card">
+	      <p>在数据科学领域，从公开的数据集API下载图片数据，为机器学习模型训练提供素材。</p>
+	    </div>
+	    <div class="card">
+	      <p>为网络爬虫应用提供图片下载功能，配合爬虫程序抓取网页中的图片内容。</p>
+	    </div>
+	  </div>
+	</div>
   </section>
 
-  <section id="usage" class="usage">
-    <div class="container">
-      <h2 class="section-title">使用场景</h2>
-      <div class="grid">
-        <div class="card">
-          <p>从图片托管服务的API获取用户上传的图片资源，用于本地备份或进一步处理。</p>
-        </div>
-        <div class="card">
-          <p>在数据科学领域，从公开的数据集API下载图片数据，为机器学习模型训练提供素材。</p>
-        </div>
-        <div class="card">
-          <p>为网络爬虫应用提供图片下载功能，配合爬虫程序抓取网页中的图片内容。</p>
-        </div>
-        <div class="card">
-          <p>需要获取网络图片作为壁纸等。</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <script>
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {

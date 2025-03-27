@@ -100,7 +100,7 @@ public class MainFrame extends JFrame {
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
         titleLabel.setForeground(Constants.TEXT_COLOR);
         
-        JLabel descriptionLabel = new JLabel("一个高效的图片api下载器。简易，简约，简单。");
+        JLabel descriptionLabel = new JLabel("一个轻量级的图片api下载器。简易，简约，简单。");
         descriptionLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         descriptionLabel.setForeground(Constants.TEXT_COLOR);
 

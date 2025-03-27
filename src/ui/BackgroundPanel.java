@@ -13,26 +13,41 @@ public class BackgroundPanel extends JPanel {
     
     public BackgroundPanel() {
         setLayout(new GridBagLayout());
-        loadBackgroundImage();
+        new SwingWorker<BufferedImage, Void>() {
+            @Override
+            protected BufferedImage doInBackground() throws Exception {
+                return loadBackgroundImage();
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    backgroundImage = get();
+                    repaint();
+                } catch (Exception e) {
+                    System.out.println("无法加载背景图片: " + e.getMessage());
+                }
+            }
+        }.execute();
     }
     
-    private void loadBackgroundImage() {
-        try {
-            // 尝试从文件加载
-            File imageFile = new File("bg.jpg");
-            if (imageFile.exists()) {
-                backgroundImage = ImageIO.read(imageFile);
-            } else {
-                // 尝试从类路径加载
-                InputStream is = getClass().getResourceAsStream("/bg.jpg");
-                if (is != null) {
-                    backgroundImage = ImageIO.read(is);
+    private BufferedImage loadBackgroundImage() throws IOException {
+        // 尝试从文件加载
+        File imageFile = new File("bg.jpg");
+        if (imageFile.exists()) {
+            return ImageIO.read(imageFile);
+        } else {
+            // 尝试从类路径加载
+            InputStream is = getClass().getResourceAsStream("/bg.jpg");
+            if (is != null) {
+                try {
+                    return ImageIO.read(is);
+                } finally {
                     is.close();
                 }
             }
-        } catch (IOException e) {
-            System.out.println("无法加载背景图片: " + e.getMessage());
         }
+        return null;
     }
     
     @Override
@@ -63,4 +78,4 @@ public class BackgroundPanel extends JPanel {
             g2d.drawImage(backgroundImage, x, y, scaledWidth, scaledHeight, this);
         }
     }
-} 
+}

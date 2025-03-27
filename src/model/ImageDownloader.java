@@ -13,18 +13,21 @@ import java.util.Map;
 public class ImageDownloader {
     public static void downloadImages(String apiUrl, int downloadCount, String downloadPath,
             JProgressBar progressBar, JLabel downloadCounterLabel, JLabel currentProgressLabel) {
-        Map<String, String> imageMap = new HashMap<>();
-        File folder = new File(downloadPath);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                Map<String, String> imageMap = new HashMap<>();
+                File folder = new File(downloadPath);
+                if (!folder.exists()) {
+                    folder.mkdirs();
+                }
 
-        try {
-            File jsonFile = new File("image_info.json");
-            if (jsonFile.exists()) {
-                // 读取已有的 JSON 文件
-                // 这里省略具体实现，可根据需求添加
-            }
+                try {
+                    File jsonFile = new File("image_info.json");
+                    if (jsonFile.exists()) {
+                        // 读取已有的 JSON 文件
+                        // 这里省略具体实现，可根据需求添加
+                    }
 
             for (int i = 0; i < downloadCount; i++) {
                 final int currentCount = i + 1;
@@ -32,6 +35,7 @@ public class ImageDownloader {
                     downloadCounterLabel.setText("当前下载: " + currentCount + "/" + downloadCount));
 
                 String imageName = downloadPath + "/image_" + i + ".jpg";
+                Thread.sleep(100); // 添加短暂延迟，避免请求过于频繁
                 if (downloadImage(apiUrl, imageName, progressBar, currentProgressLabel)) {
                     String md5 = calculateMD5(new File(imageName));
                     if (imageMap.containsValue(md5)) {
@@ -48,16 +52,32 @@ public class ImageDownloader {
             File targetJson = new File(downloadPath + "/image_info.json");
             if (sourceJson.exists()) {
                 try {
-                    java.nio.file.Files.copy(sourceJson.toPath(), targetJson.toPath(), 
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    sourceJson.delete();
-                } catch (IOException ex) {
+                    // 使用异步方式复制文件
+                    SwingWorker<Void, Void> copyWorker = new SwingWorker<Void, Void>() {
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            java.nio.file.Files.copy(sourceJson.toPath(), targetJson.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            sourceJson.delete();
+                            return null;
+                        }
+                    };
+                    copyWorker.execute();
+                } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
-        } catch (IOException | NoSuchAlgorithmException ex) {
-            ex.printStackTrace();
-        }
+            
+                    SwingUtilities.invokeLater(() -> {
+                        currentProgressLabel.setText("下载完成");
+                        progressBar.setValue(100);
+                    });
+                } catch (IOException | NoSuchAlgorithmException ex) {
+                    ex.printStackTrace();
+                }
+                return null;
+            }
+        }.execute();
     }
 
     private static boolean downloadImage(String imageUrl, String imageName,
@@ -84,31 +104,20 @@ public class ImageDownloader {
                 
                 URL url = new URL(imageUrl);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                // 先发送HEAD请求检查Content-Type
-                connection.setRequestMethod("HEAD");
-                String contentType = connection.getContentType();
-                if (contentType == null || !contentType.startsWith("image/")) {
-                    SwingUtilities.invokeLater(() -> {
-                        currentProgressLabel.setText("错误: 非图片类型文件 (" + contentType + ")");
-                    });
-                    return false;
-                }
-                
-                // 重新建立连接用于下载
-                connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
+                connection.setConnectTimeout(10000); // 设置连接超时10秒
+                connection.setReadTimeout(10000);    // 设置读取超时10秒
                 
                 int fileSize = connection.getContentLength();
-                InputStream inputStream = connection.getInputStream();
-                BufferedInputStream bis = new BufferedInputStream(inputStream);
-                java.io.FileOutputStream fos = new java.io.FileOutputStream(imageName);
+                InputStream inputStream = new BufferedInputStream(connection.getInputStream(), 8192);
+                BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageName), 8192);
                 
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[8192];
                 int bytesRead;
                 long totalBytesRead = 0;
                 
-                while ((bytesRead = bis.read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
                     totalBytesRead += bytesRead;
                     
                     if (fileSize > 0) {
@@ -120,8 +129,8 @@ public class ImageDownloader {
                     }
                 }
                 
-                fos.close();
-                bis.close();
+                outputStream.flush();
+                outputStream.close();
                 inputStream.close();
                 
                 SwingUtilities.invokeLater(() -> {
@@ -136,6 +145,9 @@ public class ImageDownloader {
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
                 retryCount++;
+                SwingUtilities.invokeLater(() -> {
+                    currentProgressLabel.setText("连接超时");
+                });
                 if (retryCount > maxRetries) {
                     SwingUtilities.invokeLater(() -> {
                         if (progressBar.getParent().isAncestorOf(retryLabel)) {
