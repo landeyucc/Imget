@@ -43,6 +43,10 @@ body {
 	align-items: center;
 }
 
+#home{
+	  background: linear-gradient(rgba(231, 231, 231, 0.8), rgba(231, 231, 231, 0.8)), url('https://files-plus.coldsea.vip/gitcp/imget/weba.jpg') no-repeat 0% 100%/ cover fixed;
+}
+
 .container {
 	max-width: 1200px;
 	margin: 0 auto;
