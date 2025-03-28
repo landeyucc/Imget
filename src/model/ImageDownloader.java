@@ -7,7 +7,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ImageDownloader {
@@ -46,7 +46,7 @@ public class ImageDownloader {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                Map<String, String> imageMap = new HashMap<>();
+                Map<String, String> imageMap = new LinkedHashMap<>();
                 File folder = new File(downloadPath);
                 if (!folder.exists()) {
                     folder.mkdirs();

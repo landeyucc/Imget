@@ -112,11 +112,11 @@ public class UIUtils {
         }
         
         BufferedImage image = null;
-        File iconFile = new File(iconPath);
+        java.net.URL iconUrl = UIUtils.class.getResource(iconPath);
         
-        if (iconFile.exists() && iconFile.isFile()) {
+        if (iconUrl != null) {
             try {
-                image = ImageIO.read(iconFile);
+                image = ImageIO.read(iconUrl);
                 System.out.println("成功加载图标: " + iconPath);
             } catch (IOException ex) {
                 System.err.println("加载图标失败: " + ex.getMessage());
@@ -125,7 +125,7 @@ public class UIUtils {
             }
         } else {
             System.err.println("无法找到图标文件: " + iconPath);
-            throw new IOException("无法加载图标: " + iconPath + "，请确保文件存在且路径正确");
+            throw new IOException("无法加载图标: " + iconPath + "，请确保资源路径正确");
         }
         
         cachedIcon = image;
