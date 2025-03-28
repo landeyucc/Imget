@@ -5,21 +5,84 @@ import java.awt.Font;
 
 public class Constants {
     // 定义颜色主题
-    public static final Color BACKGROUND_COLOR = new Color(245, 246, 247);
-    public static final Color COMPONENT_BG_COLOR = new Color(255, 255, 255);
-    public static final Color TEXT_COLOR = new Color(33, 37, 41);
-    public static final Color ACCENT_COLOR = new Color(206, 206, 255);
-    public static final Color PROGRESS_COLOR = new Color(40, 167, 69);
-    public static final Color HOVER_COLOR = new Color(135, 206, 235);  // 天蓝色
+    private static Color backgroundColor;
+    private static Color componentBgColor;
+    private static Color textColor;
+    private static Color accentColor;
+    private static Color progressColor;
+    private static Color hoverColor;
     
     // 定义全局字体
-    public static final Font NORMAL_FONT = new Font("微软雅黑", Font.PLAIN, 14);
-    public static final Font BOLD_FONT = new Font("微软雅黑", Font.BOLD, 14);
-    public static final Font SMALL_FONT = new Font("微软雅黑", Font.PLAIN, 12);
+    private static Font normalFont;
+    private static Font boldFont;
+    private static Font smallFont;
+    
+    public static Color BACKGROUND_COLOR() {
+        if (backgroundColor == null) {
+            backgroundColor = new Color(245, 246, 247);
+        }
+        return backgroundColor;
+    }
+    
+    public static Color COMPONENT_BG_COLOR() {
+        if (componentBgColor == null) {
+            componentBgColor = new Color(255, 255, 255);
+        }
+        return componentBgColor;
+    }
+    
+    public static Color TEXT_COLOR() {
+        if (textColor == null) {
+            textColor = new Color(33, 37, 41);
+        }
+        return textColor;
+    }
+    
+    public static Color ACCENT_COLOR() {
+        if (accentColor == null) {
+            accentColor = new Color(206, 206, 255);
+        }
+        return accentColor;
+    }
+    
+    public static Color PROGRESS_COLOR() {
+        if (progressColor == null) {
+            progressColor = new Color(40, 167, 69);
+        }
+        return progressColor;
+    }
+    
+    public static Color HOVER_COLOR() {
+        if (hoverColor == null) {
+            hoverColor = new Color(135, 206, 235);
+        }
+        return hoverColor;
+    }
+    
+    public static Font NORMAL_FONT() {
+        if (normalFont == null) {
+            normalFont = new Font("微软雅黑", Font.PLAIN, 14);
+        }
+        return normalFont;
+    }
+    
+    public static Font BOLD_FONT() {
+        if (boldFont == null) {
+            boldFont = new Font("微软雅黑", Font.BOLD, 14);
+        }
+        return boldFont;
+    }
+    
+    public static Font SMALL_FONT() {
+        if (smallFont == null) {
+            smallFont = new Font("微软雅黑", Font.PLAIN, 12);
+        }
+        return smallFont;
+    }
 
     // 版本信息
     public static final String VERSION = "1.0.4(25032704)";
     public static final String AUTHOR = "Lande";
     public static final String WEBSITE = "https://Imget.coldsea.vip";
     public static final String GITHUB_URL = "https://github.com/landeyucc/Imget";
-} 
+}

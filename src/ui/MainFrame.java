@@ -20,8 +20,11 @@ public class MainFrame extends JFrame {
     private JButton downloadButton;
 
     public MainFrame() {
-        initializeFrame();
-        createUI();
+        SwingUtilities.invokeLater(() -> {
+            initializeFrame();
+            createUI();
+            setVisible(true);
+        });
     }
 
     private void initializeFrame() {
@@ -29,7 +32,7 @@ public class MainFrame extends JFrame {
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        getContentPane().setBackground(Constants.BACKGROUND_COLOR);
+        getContentPane().setBackground(Constants.BACKGROUND_COLOR());
         setLocationRelativeTo(null);
         setResizable(false);
         
@@ -96,13 +99,10 @@ public class MainFrame extends JFrame {
     }
 
     private void addTitle(JPanel panel) {
-        JLabel titleLabel = new JLabel("Imget");
+        JLabel titleLabel = UIUtils.createStyledLabel("Imget");
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
-        titleLabel.setForeground(Constants.TEXT_COLOR);
         
-        JLabel descriptionLabel = new JLabel("一个轻量级的图片api下载器。简易，简约，简单。");
-        descriptionLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        descriptionLabel.setForeground(Constants.TEXT_COLOR);
+        JLabel descriptionLabel = UIUtils.createStyledLabel("一个轻量级的图片api下载器。简易，简约，简单。");
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -178,7 +178,7 @@ public class MainFrame extends JFrame {
 
         // 路径输入面板
         JPanel pathPanel = new JPanel(new BorderLayout(5, 0));
-        pathPanel.setBackground(Constants.BACKGROUND_COLOR);
+        pathPanel.setBackground(Constants.BACKGROUND_COLOR());
         pathPanel.add(downloadPathField, BorderLayout.CENTER);
         pathPanel.add(browseButton, BorderLayout.EAST);
 
@@ -257,7 +257,7 @@ public class MainFrame extends JFrame {
     private JPanel createAboutPanel() {
         JButton aboutButton = UIUtils.createStyledButton("关于");
         aboutButton.setPreferredSize(new Dimension(30, 30));
-        aboutButton.setFont(Constants.SMALL_FONT);
+        aboutButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         aboutButton.addActionListener(e -> showAboutDialog());
 
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
@@ -270,6 +270,15 @@ public class MainFrame extends JFrame {
     }
 
     private void handleDownload() {
+        if (ImageDownloader.isDownloading()) {
+            return;
+        }
+
+        if (ImageDownloader.isRetrying()) {
+            downloadButton.setText("立即重试");
+            downloadButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        }
+
         if (apiUrlField.getText().isEmpty() || downloadCountField.getText().isEmpty() || downloadPathField.getText().isEmpty()) {
             UIUtils.showErrorMessage("请完全正确的填写完整信息");
             return;
@@ -282,18 +291,25 @@ public class MainFrame extends JFrame {
                 return;
             }
             
-            downloadButton.setEnabled(false);
+            downloadButton.setEnabled(!ImageDownloader.isDownloading());
+            downloadButton.setText(ImageDownloader.isRetrying() ? "立即重试" : "下载");
             String apiUrl = apiUrlField.getText();
             String downloadPath = downloadPathField.getText();
             
-            new Thread(() -> {
-                try {
+            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
                     ImageDownloader.downloadImages(apiUrl, count, downloadPath, 
                         progressBar, downloadCounterLabel, currentProgressLabel);
-                } finally {
-                    SwingUtilities.invokeLater(() -> downloadButton.setEnabled(true));
+                    return null;
                 }
-            }).start();
+                
+                @Override
+                protected void done() {
+                    downloadButton.setEnabled(true);
+                }
+            };
+            worker.execute();
         } catch (NumberFormatException ex) {
             UIUtils.showErrorMessage("请输入有效的下载次数");
         }
@@ -306,7 +322,7 @@ public class MainFrame extends JFrame {
         JEditorPane editorPane = new JEditorPane();
         editorPane.setContentType("text/html");
         editorPane.setEditable(false);
-        editorPane.setBackground(Constants.BACKGROUND_COLOR);
+        editorPane.setBackground(Constants.BACKGROUND_COLOR());
         
         String htmlContent = String.format(
             "<html><body style='width: 230px; padding: 0px; margin: 0px;'>" +

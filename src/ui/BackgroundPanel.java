@@ -13,22 +13,11 @@ public class BackgroundPanel extends JPanel {
     
     public BackgroundPanel() {
         setLayout(new GridBagLayout());
-        new SwingWorker<BufferedImage, Void>() {
-            @Override
-            protected BufferedImage doInBackground() throws Exception {
-                return loadBackgroundImage();
-            }
-            
-            @Override
-            protected void done() {
-                try {
-                    backgroundImage = get();
-                    repaint();
-                } catch (Exception e) {
-                    System.out.println("无法加载背景图片: " + e.getMessage());
-                }
-            }
-        }.execute();
+        try {
+            backgroundImage = loadBackgroundImage();
+        } catch (Exception e) {
+            System.out.println("无法加载背景图片: " + e.getMessage());
+        }
     }
     
     private BufferedImage loadBackgroundImage() throws IOException {
