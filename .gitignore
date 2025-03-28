@@ -8,3 +8,4 @@ full1.0.java
 /bin
 *.jks
 SignJar.bat
+sign.bat

@@ -71,12 +71,12 @@ public class ImageDownloader {
                     if (imageMap.containsValue(md5)) {
                         logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
                         new File(imageName).delete();
-                        System.out.println(String.format("{\"event\":\"file_status\",\"file\":\"%s\",\"status\":\"deleted\",\"reason\":\"duplicate\"}", new File(imageName).getName()));
+                        imageMap.put(imageName, md5);
                     } else {
                         logEvent("download_success", "file", imageName, "md5", md5);
                         imageMap.put(imageName, md5);
-                        writeToJson(imageMap, "image_info.json", apiUrl);
                     }
+                    writeToJson(imageMap, "image_info.json", apiUrl);
                 }
             }
     
@@ -227,16 +227,20 @@ public class ImageDownloader {
             if (!first) {
                 writer.write(",\n");
             }
-            File file = new File(entry.getKey());
+            String imagePath = entry.getKey();
+            String md5 = entry.getValue();
+            File file = new File(imagePath);
+            boolean exists = file.exists();
+            long fileSize = exists ? file.length() : 0;
+            String status = exists ? "saved" : "deleted";
             writer.write("  {\n");
             writer.write("    \"source_url\": \"" + apiUrl + "\",\n");
             writer.write("    \"modified_name\": \"" + file.getName() + "\",\n");
-            writer.write("    \"file_size\": " + file.length() + ",\n");
-            writer.write("    \"md5\": \"" + entry.getValue() + "\",\n");
-            writer.write("    \"status\": \"saved\"\n");
+            writer.write("    \"file_size\": " + fileSize + ",\n");
+            writer.write("    \"md5\": \"" + md5 + "\",\n");
+            writer.write("    \"status\": \"" + status + "\"\n");
             writer.write("  }");
             first = false;
-            System.out.println(String.format("{\"event\":\"file_status\",\"file\":\"%s\",\"status\":\"saved\",\"size\":%d}", file.getName(), file.length()));
         }
         writer.write("\n]");
         writer.close();

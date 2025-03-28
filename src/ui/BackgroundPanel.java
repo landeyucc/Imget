@@ -21,12 +21,12 @@ public class BackgroundPanel extends JPanel {
     }
     
     private BufferedImage loadBackgroundImage() {
-        try (InputStream is = getClass().getResourceAsStream("/src/resource/bg.jpg")) {
+        try (InputStream is = getClass().getResourceAsStream("/src/resources/bg.jpg")) {
             if (is != null) {
                 return ImageIO.read(is);
             }
         } catch (IOException e) {
-            System.err.println("加载背景图片失败: " + e.getMessage() + "\n路径: " + getClass().getResource("/src/resource/bg.jpg"));
+            System.err.println("加载背景图片失败: " + e.getMessage() + "\n路径: " + getClass().getResource("/src/resources/bg.jpg"));
         }
         return null;
     }
