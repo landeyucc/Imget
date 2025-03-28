@@ -4,7 +4,8 @@
 
 # Imget：高效图片资源批量下载工具
 
-![Imget](https://files-plus.coldsea.vip/gitcp/imget/app.jpg){ width=100px }
+<!-- ![Imget](https://files-plus.coldsea.vip/gitcp/imget/app.jpg) -->
+<img src="https://files-plus.coldsea.vip/gitcp/imget/app.jpg" width="50%" style="display: block; margin: 0 auto;">
 
 Imget 是一款专为解决图片资源 API 批量下载问题而设计的自动化工具。基于 Java 语言开发，Imget 通过高效的网络请求处理和数据存储机制，实现从指定 API 或网络资源中批量提取图片数据，并将其持久化到本地存储系统。
 
