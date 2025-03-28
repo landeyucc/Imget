@@ -2,22 +2,22 @@
 <html lang="zh-CN">
 <head>
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
-  <meta name="description" content="一款专为高效下载图片API而设计的应用程序。" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Imget - 简约图片API下载工具</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <meta name="description" content="Imget：一款专为高效下载图片API而设计的应用程序。" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Imget - 高效图片API批量下载工具</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
   <link rel="stylesheet" href="imget_wcss.css" />
   <link rel="shortcut icon" href="img/Imget.ico" type="image/x-icon" />
 </head>
 <body>
   <header class="header">
     <div class="header-content">
-      <h2>ColdSea - Imget</h2>
+      <h2>Imget</h2>
       <nav class="nav-links">
         <a href="#home">首页</a>
         <a href="#features">功能特点与使用场景</a>
-        <a href="https://github.com/your-username/Imget" target="_blank">
+        <a href="https://github.com/landeyucc/Imget" target="_blank">
           <svg class="github-icon" viewBox="0 0 24 24">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
           </svg>
@@ -32,9 +32,9 @@
         <div class="hero-content">
           <h1>Imget</h1>
           <h2 style="color: #666; margin-bottom: 1rem;">一款专为高效下载图片API而设计的应用程序</h2>
-          <p>在当今网络环境中，我们能遇到许多随机加载的图片API站点，它们均有一个庞大的图片库，但是我们要下载这里面的图片那下载步骤就非常繁琐。Imget让这个过程变得简单高效。</p>
+          <p>在现代网络环境中，随机分发机制的图片资源API服务日益普及。Imget通过高效的网络请求处理和数据存储机制，实现从指定API或网络资源中批量提取图片数据，并将其持久化到本地存储系统。</p>
           <a href="https://files-plus.coldsea.vip/gitcp/imget/Imget.jar.zip" class="btn" download="Imget.jar.zip">立即下载</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-		  <a href="https://github.com/landeyucc/Imget/releases/" class="btn" download="Imget.jar.zip">Github下载</a>
+          <a href="https://github.com/landeyucc/Imget/releases/" class="btn" download="Imget.jar.zip">GitHub下载</a>
         </div>
         <div class="hero-image">
           <img src="https://files-plus.coldsea.vip/gitcp/imget/app.jpg" alt="Imget Screenshot" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
@@ -48,39 +48,39 @@
       <h2 class="section-title">功能特点与使用场景</h2>
       <div class="grid">
         <div class="card">
-          <h3>多数据处理</h3>
-          <p>支持理论无上限次数的海量图片下载，尤其在捕获对于非常多数据的图片API库时表现出色。</p>
+          <h3>高并发批量下载能力</h3>
+          <p>支持无上限的批量下载任务，尤其在处理海量图片资源库时表现卓越。通过异步请求处理和任务队列管理，显著提升下载效率。</p>
         </div>
         <div class="card">
-          <h3>错误处理与恢复</h3>
-          <p>具备完善的错误处理机制，能够在网络中断或其他异常情况下自动重试，并从上次中断的位置继续下载，避免重复工作。</p>
+          <h3>异常处理与断点续传</h3>
+          <p>集成完善的错误恢复机制，支持网络中断、超时等异常场景下的自动重试功能。通过断点续传技术，确保任务在异常中断后能够从中断点继续执行，避免重复工作。</p>
         </div>
         <div class="card">
-          <h3>兼容性广泛</h3>
-          <p>采用Java编写，具有良好的跨平台特性，能够在多种操作系统上运行，如Windows、Linux和macOS。</p>
+          <h3>跨平台兼容性</h3>
+          <p>基于Java虚拟机（JVM）架构，Imget具备出色的跨平台特性，支持Windows、Linux和macOS等主流操作系统，确保在不同运行环境中的一致性。</p>
         </div>
       </div>
     </div>
-	<br />
-	<div class="container" id="usage">
-	  <div class="grid">
-	    <div class="card">
-			<h3>公共图库下载</h3>
-	      <p>从图片托管服务的API获取用户上传的图片资源，用于本地备份或进一步处理。</p>
-	    </div>
-	    <div class="card">
-			<h3>图像数据采集</h3>
-	      <p>在数据科学领域，从公开的数据集API下载图片数据，为机器学习模型训练提供素材。</p>
-	    </div>
-	    <div class="card">
-			<h3>个人研究使用</h3>
-	      <p>为网络爬虫应用提供图片下载功能，配合爬虫程序抓取网页中的图片内容，供个人合法使用。</p>
-	    </div>
-	  </div>
-	</div>
+    <br />
+    <div class="container" id="usage">
+      <div class="grid">
+        <div class="card">
+          <h3>公共图库下载</h3>
+          <p>从图片托管服务的API获取用户上传的图片资源，用于本地备份或进一步处理。</p>
+        </div>
+        <div class="card">
+          <h3>图像数据采集</h3>
+          <p>在数据科学领域，从公开的数据集API下载图片数据，为计算机视觉模型训练提供高质量素材。</p>
+        </div>
+        <div class="card">
+          <h3>个人研究使用</h3>
+          <p>为网络爬虫应用提供图片下载功能，配合爬虫程序抓取网页中的图片内容，供个人合法使用。</p>
+        </div>
+      </div>
+    </div>
   </section>
-<footer style="text-align: center;background-color: #fff;padding: 5px;">
-	<span>©2025&nbsp;<a href="https://github.com/landeyucc/">@landeyucc</a>&nbsp;保留所有权利。Powered by <a href="https://coldsea.vip/" target="_blank">ColdSea.VIP</a></span>
-</footer>
+  <footer style="text-align: center; background-color: #fff; padding: 5px;">
+    <span>©2025&nbsp;<a href="https://github.com/landeyucc/">@landeyucc</a>&nbsp;保留所有权利。Powered by <a href="https://coldsea.vip/" target="_blank">ColdSea.VIP</a></span>
+  </footer>
 </body>
 </html>
