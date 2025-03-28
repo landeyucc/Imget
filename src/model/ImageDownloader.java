@@ -56,7 +56,6 @@ public class ImageDownloader {
                     File jsonFile = new File("image_info.json");
                     if (jsonFile.exists()) {
                         // 读取已有的 JSON 文件
-                        // 这里省略具体实现，可根据需求添加
                     }
 
             for (int i = 0; i < downloadCount; i++) {
