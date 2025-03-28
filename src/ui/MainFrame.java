@@ -37,7 +37,7 @@ public class MainFrame extends JFrame {
         setResizable(false);
         
         try {
-            setIconImage(UIUtils.loadIcon("Imget.png"));
+            setIconImage(UIUtils.loadIcon(Constants.ICON_PATH));
         } catch (Exception e) {
             System.out.println("无法加载图标: " + e.getMessage());
         }
@@ -306,7 +306,9 @@ public class MainFrame extends JFrame {
                 
                 @Override
                 protected void done() {
-                    downloadButton.setEnabled(true);
+                    SwingUtilities.invokeLater(() -> {
+                        downloadButton.setEnabled(true);
+                    });
                 }
             };
             worker.execute();

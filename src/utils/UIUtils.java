@@ -5,9 +5,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.File;
 
 public class UIUtils {
     public static JLabel createStyledLabel(String text) {
@@ -107,34 +106,26 @@ public class UIUtils {
 
     private static BufferedImage cachedIcon = null;
     
-    public static BufferedImage loadIcon(String iconName) throws IOException {
+    public static BufferedImage loadIcon(String iconPath) throws IOException {
         if (cachedIcon != null) {
             return cachedIcon;
         }
         
         BufferedImage image = null;
+        File iconFile = new File(iconPath);
         
-        // 方式1：直接从文件加载
-        File iconFile = new File(iconName);
-        if (iconFile.exists()) {
+        if (iconFile.exists() && iconFile.isFile()) {
             try {
                 image = ImageIO.read(iconFile);
+                System.out.println("成功加载图标: " + iconPath);
             } catch (IOException ex) {
-                System.out.println("直接加载图标失败: " + ex.getMessage());
+                System.err.println("加载图标失败: " + ex.getMessage());
+                cachedIcon = null; // 重置缓存
+                throw ex;
             }
-        }
-        
-        // 方式2：从类路径加载
-        if (image == null) {
-            try {
-                InputStream is = UIUtils.class.getResourceAsStream("/" + iconName);
-                if (is != null) {
-                    image = ImageIO.read(is);
-                    is.close();
-                }
-            } catch (IOException ex) {
-                System.out.println("从类路径加载图标失败: " + ex.getMessage());
-            }
+        } else {
+            System.err.println("无法找到图标文件: " + iconPath);
+            throw new IOException("无法加载图标: " + iconPath + "，请确保文件存在且路径正确");
         }
         
         cachedIcon = image;

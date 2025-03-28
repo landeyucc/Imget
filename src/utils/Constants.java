@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Font;
 
 public class Constants {
+    public static final String ICON_PATH = "src/resource/Imget.png";
+
     // 定义颜色主题
     private static Color backgroundColor;
     private static Color componentBgColor;
