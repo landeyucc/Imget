@@ -9,3 +9,5 @@ full1.0.java
 *.jks
 SignJar.bat
 sign.bat
+log.txt
+/res
