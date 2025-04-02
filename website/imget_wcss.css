@@ -57,6 +57,14 @@ body {
 	width: 100%;
 }
 
+.ispc{
+	display: inline-block;
+}
+
+.nopc{
+	display: none;
+}
+
 .hero {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -137,5 +145,13 @@ body {
 
 	.nav-links {
 		display: none;
+	}
+	
+	.ispc{
+		display: none;
+	}
+	
+	.nopc{
+		display: block;
 	}
 }

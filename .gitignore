@@ -11,3 +11,4 @@ SignJar.bat
 sign.bat
 log.txt
 /res
+*.zip
