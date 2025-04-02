@@ -6,7 +6,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.io.File;
 
 public class UIUtils {
     public static JLabel createStyledLabel(String text) {

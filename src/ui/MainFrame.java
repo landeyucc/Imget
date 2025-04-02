@@ -11,13 +11,18 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainFrame extends JFrame {
-    private JProgressBar progressBar;
-    private JLabel downloadCounterLabel;
-    private JLabel currentProgressLabel;
+    private JProgressBar progressBar1;
+    private JProgressBar progressBar2;
+    private JLabel downloadCounterLabel1;
+    private JLabel downloadCounterLabel2;
+    private JLabel currentProgressLabel1;
+    private JLabel currentProgressLabel2;
     private JTextField apiUrlField;
     private JTextField downloadCountField;
     private JTextField downloadPathField;
     private JButton downloadButton;
+    private ButtonGroup duplicateThresholdGroup;
+    private int selectedDuplicateThreshold = 50; // 默认中等级别
 
     public MainFrame() {
         SwingUtilities.invokeLater(() -> {
@@ -92,6 +97,9 @@ public class MainFrame extends JFrame {
         // 添加输入字段
         addInputFields(mainPanel);
 
+        // 添加重复检测选择按钮
+        addDuplicateThresholdButtons(mainPanel);
+
         // 添加下载按钮
         addDownloadButton(mainPanel);
 
@@ -127,19 +135,25 @@ public class MainFrame extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.gridwidth = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 5, 0);  // 添加底部间距
         panel.add(apiUrlLabel, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 20, 0);  // 增加底部间距
         panel.add(apiUrlField, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 0, 0);  // 重置间距
         panel.add(downloadSettingsPanel, gbc);
     }
@@ -205,17 +219,64 @@ public class MainFrame extends JFrame {
         return panel;
     }
 
+    private void addDuplicateThresholdButtons(JPanel panel) {
+        JPanel duplicatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        duplicatePanel.setOpaque(false);
+        
+        JLabel thresholdLabel = UIUtils.createStyledLabel("重复检测等级:");
+        duplicatePanel.add(thresholdLabel);
+        
+        duplicateThresholdGroup = new ButtonGroup();
+        
+        JRadioButton lowButton = new JRadioButton("低(20次)");
+        JRadioButton mediumButton = new JRadioButton("中(50次)", true);
+        JRadioButton highButton = new JRadioButton("高(100次)");
+        
+        // 设置按钮样式
+        Font radioFont = new Font("微软雅黑", Font.PLAIN, 12);
+        lowButton.setFont(radioFont);
+        mediumButton.setFont(radioFont);
+        highButton.setFont(radioFont);
+        
+        lowButton.setOpaque(false);
+        mediumButton.setOpaque(false);
+        highButton.setOpaque(false);
+        
+        // 添加事件监听
+        lowButton.addActionListener(e -> selectedDuplicateThreshold = 20);
+        mediumButton.addActionListener(e -> selectedDuplicateThreshold = 50);
+        highButton.addActionListener(e -> selectedDuplicateThreshold = 100);
+        
+        duplicateThresholdGroup.add(lowButton);
+        duplicateThresholdGroup.add(mediumButton);
+        duplicateThresholdGroup.add(highButton);
+        
+        duplicatePanel.add(lowButton);
+        duplicatePanel.add(mediumButton);
+        duplicatePanel.add(highButton);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 0, 10, 0);
+        panel.add(duplicatePanel, gbc);
+    }
+
     private void addDownloadButton(JPanel panel) {
         downloadButton = UIUtils.createStyledButton("下载");
         downloadButton.addActionListener(e -> handleDownload());
         
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.gridx = 1;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(20, 15, 20, 15);
+        gbc.insets = new Insets(20, 0, 20, 0);
         
         downloadButton.setPreferredSize(new Dimension(200, 40));
         downloadButton.setMinimumSize(new Dimension(200, 40));
@@ -229,27 +290,47 @@ public class MainFrame extends JFrame {
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        progressBar = UIUtils.createStyledProgressBar();
-        downloadCounterLabel = UIUtils.createStyledLabel("当前下载: 0/0");
-        currentProgressLabel = UIUtils.createStyledLabel("当前文件进度: 0%");
+        progressBar1 = UIUtils.createStyledProgressBar();
+        progressBar2 = UIUtils.createStyledProgressBar();
+        downloadCounterLabel1 = UIUtils.createStyledLabel("线程1下载: 0/0");
+        downloadCounterLabel2 = UIUtils.createStyledLabel("线程2下载: 0/0");
+        currentProgressLabel1 = UIUtils.createStyledLabel("线程1进度: 0%");
+        currentProgressLabel2 = UIUtils.createStyledLabel("线程2进度: 0%");
 
         GridBagConstraints gbc = new GridBagConstraints();
+        
+        // 线程1的组件
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         gbc.insets = new Insets(0, 0, 2, 0);
         gbc.anchor = GridBagConstraints.WEST;
-        panel.add(downloadCounterLabel, gbc);
+        panel.add(downloadCounterLabel1, gbc);
 
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 5, 0);
-        panel.add(currentProgressLabel, gbc);
+        panel.add(currentProgressLabel1, gbc);
 
         gbc.gridy = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 10, 0);
+        panel.add(progressBar1, gbc);
+
+        // 线程2的组件
+        gbc.gridy = 3;
+        gbc.insets = new Insets(0, 0, 2, 0);
+        panel.add(downloadCounterLabel2, gbc);
+
+        gbc.gridy = 4;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        panel.add(currentProgressLabel2, gbc);
+
+        gbc.gridy = 5;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 0, 0);
-        panel.add(progressBar, gbc);
+        panel.add(progressBar2, gbc);
 
         return panel;
     }
@@ -295,12 +376,16 @@ public class MainFrame extends JFrame {
             downloadButton.setText(ImageDownloader.isRetrying() ? "立即重试" : "下载");
             String apiUrl = apiUrlField.getText();
             String downloadPath = downloadPathField.getText();
+            int duplicateThreshold = selectedDuplicateThreshold;
             
             SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
                 @Override
                 protected Void doInBackground() throws Exception {
                     ImageDownloader.downloadImages(apiUrl, count, downloadPath, 
-                        progressBar, downloadCounterLabel, currentProgressLabel);
+                        progressBar1, progressBar2,
+                        downloadCounterLabel1, downloadCounterLabel2,
+                        currentProgressLabel1, currentProgressLabel2,
+                        duplicateThreshold);
                     return null;
                 }
                 
