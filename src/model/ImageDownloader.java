@@ -13,6 +13,7 @@ import java.util.Map;
 public class ImageDownloader {
     private static boolean isDownloading = false;
     private static boolean isRetrying = false;
+    private static JLabel retryLabel = new JLabel("重试中...");
     
     public static boolean isDownloading() {
         return isDownloading;
@@ -46,9 +47,9 @@ public class ImageDownloader {
         isRetrying = false;
         logEvent("start_download", "total_count", downloadCount, "download_path", downloadPath);
 
-        // 为每个线程创建独立的imageMap
-        Map<String, String> imageMap1 = new LinkedHashMap<>();
-        Map<String, String> imageMap2 = new LinkedHashMap<>();
+        // 创建共享的imageMap和同步锁
+        Map<String, String> imageMap = new LinkedHashMap<>();
+        Object mapLock = new Object();
         File folder = new File(downloadPath);
         if (!folder.exists()) {
             folder.mkdirs();
@@ -62,13 +63,13 @@ public class ImageDownloader {
 
         // 创建两个下载线程
         Thread thread1 = new Thread(() -> {
-            downloadImagesForThread(apiUrl, 0, thread1End, downloadPath, imageMap1,
-                progressBar1, downloadCounterLabel1, currentProgressLabel1, duplicateThreshold, 1);
+            downloadImagesForThread(apiUrl, 0, thread1End, downloadPath, imageMap, mapLock,
+                progressBar1, downloadCounterLabel1, currentProgressLabel1, duplicateThreshold);
         });
 
         Thread thread2 = new Thread(() -> {
-            downloadImagesForThread(apiUrl, thread2Start, thread2End, downloadPath, imageMap2,
-                progressBar2, downloadCounterLabel2, currentProgressLabel2, duplicateThreshold, 2);
+            downloadImagesForThread(apiUrl, thread2Start, thread2End, downloadPath, imageMap, mapLock,
+                progressBar2, downloadCounterLabel2, currentProgressLabel2, duplicateThreshold);
         });
 
         // 启动线程
@@ -80,7 +81,7 @@ public class ImageDownloader {
             @Override
             protected Void doInBackground() throws Exception {
                 try {
-                    File jsonFile = new File("image_info.json");
+                    File jsonFile = new File("a_image_info.json");
                     if (jsonFile.exists()) {
                         // 读取已有的 JSON 文件
                     }
@@ -110,72 +111,69 @@ public class ImageDownloader {
     }
 
     private static void downloadImagesForThread(String apiUrl, int startIndex, int endIndex,
-            String downloadPath, Map<String, String> imageMap,
+            String downloadPath, Map<String, String> imageMap, Object mapLock,
             JProgressBar progressBar, JLabel downloadCounterLabel, JLabel currentProgressLabel,
-            int duplicateThreshold, int threadId) {
+            int duplicateThreshold) {
         int consecutiveDuplicates = 0;
+        int fileIndex = startIndex == 0 ? 1 : 1; // 第一个线程从1开始，第二个线程也从1开始
         
         for (int i = startIndex; i < endIndex; i++) {
             final int currentCount = i + 1;
             SwingUtilities.invokeLater(() -> 
                 downloadCounterLabel.setText("当前下载: " + currentCount + "/" + endIndex));
 
-            String imageName = downloadPath + "/image_" + i + ".jpg";
+            String imageName = downloadPath + "/image_" + (startIndex == 0 ? fileIndex : "thread2_" + fileIndex) + ".jpg";
             logEvent("download_start", "file", imageName, "index", currentCount);
             
             try {
                 Thread.sleep(100); // 添加短暂延迟，避免请求过于频繁
                 if (downloadImage(apiUrl, imageName, progressBar, currentProgressLabel)) {
                     String md5 = calculateMD5(new File(imageName));
-                    if (imageMap.containsValue(md5)) {
-                        logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
-                        new File(imageName).delete();
-                        imageMap.put(imageName, md5);
-                        consecutiveDuplicates++;
-                        
-                        if (consecutiveDuplicates >= duplicateThreshold) {
-                            logEvent("download_terminated", "reason", "consecutive_duplicates_threshold_reached", "threshold", duplicateThreshold);
-                            SwingUtilities.invokeLater(() -> {
-                                currentProgressLabel.setText("已终止：连续重复次数达到" + duplicateThreshold + "次");
-                                progressBar.setValue(100);
-                            });
-                            return;
+                    synchronized (mapLock) {
+                        if (imageMap.containsValue(md5)) {
+                            logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
+                            new File(imageName).delete();
+                            imageMap.put(imageName, md5);
+                            consecutiveDuplicates++;
+                            
+                            if (consecutiveDuplicates >= duplicateThreshold) {
+                                logEvent("download_terminated", "reason", "consecutive_duplicates_threshold_reached", "threshold", duplicateThreshold);
+                                SwingUtilities.invokeLater(() -> {
+                                    currentProgressLabel.setText("已终止：连续重复次数达到" + duplicateThreshold + "次");
+                                    progressBar.setValue(100);
+                                });
+                                return;
+                            }
+                        } else {
+                            logEvent("download_success", "file", imageName, "md5", md5);
+                            imageMap.put(imageName, md5);
+                            consecutiveDuplicates = 0;
+                            fileIndex++;
                         }
-                    } else {
-                        logEvent("download_success", "file", imageName, "md5", md5);
-                        imageMap.put(imageName, md5);
-                        consecutiveDuplicates = 0;
+                        writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                     }
-                    writeToJson(imageMap, downloadPath + "/image_info_thread" + threadId + ".json", apiUrl);
                 }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (IOException | NoSuchAlgorithmException e) {
-                    logEvent("error", "file", imageName, "error", e.getMessage());
-                    e.printStackTrace();
-                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (IOException | NoSuchAlgorithmException e) {
+                logEvent("error", "file", imageName, "error", e.getMessage());
+                e.printStackTrace();
             }
         }
-    
+    }
 
     private static boolean downloadImage(String imageUrl, String imageName,
             JProgressBar progressBar, JLabel currentProgressLabel) {
         int maxRetries = 10;
         int retryCount = 0;
         int retryInterval = 5000; // 5秒
-        JLabel retryLabel = new JLabel();
-        retryLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         
         while (retryCount < maxRetries) {
             try {
                 if (retryCount > 0) {
                     final int currentRetry = retryCount;
                     SwingUtilities.invokeLater(() -> {
-                        if (!progressBar.getParent().isAncestorOf(retryLabel)) {
-                            progressBar.getParent().add(retryLabel);
-                            progressBar.getParent().revalidate();
-                        }
-                        retryLabel.setText("重试次数: " + currentRetry + "/" + maxRetries);
+                        currentProgressLabel.setText("重试次数: " + currentRetry + "/" + maxRetries);
                     });
                     Thread.sleep(retryInterval);
                 }

@@ -17,6 +17,7 @@ public class MainFrame extends JFrame {
     private JLabel downloadCounterLabel2;
     private JLabel currentProgressLabel1;
     private JLabel currentProgressLabel2;
+    private JLabel retryLabel;
     private JTextField apiUrlField;
     private JTextField downloadCountField;
     private JTextField downloadPathField;
@@ -336,15 +337,20 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel createAboutPanel() {
-        JButton aboutButton = UIUtils.createStyledButton("关于");
-        aboutButton.setPreferredSize(new Dimension(30, 30));
-        aboutButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        aboutButton.addActionListener(e -> showAboutDialog());
-
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
         panel.setOpaque(false);
         panel.setBackground(new Color(0, 0, 0, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 10));
+
+        retryLabel = UIUtils.createStyledLabel("");
+        retryLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        retryLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        panel.add(retryLabel);
+
+        JButton aboutButton = UIUtils.createStyledButton("关于");
+        aboutButton.setPreferredSize(new Dimension(30, 30));
+        aboutButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        aboutButton.addActionListener(e -> showAboutDialog());
         panel.add(aboutButton);
 
         return panel;
