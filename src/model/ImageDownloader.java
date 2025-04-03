@@ -14,6 +14,7 @@ public class ImageDownloader {
     private static boolean isDownloading = false;
     private static boolean isRetrying = false;
     private static JLabel retryLabel = new JLabel("重试中...");
+    private static String detectedImageFormat = null; // 存储检测到的图片格式
     
     public static boolean isDownloading() {
         return isDownloading;
@@ -115,14 +116,16 @@ public class ImageDownloader {
             JProgressBar progressBar, JLabel downloadCounterLabel, JLabel currentProgressLabel,
             int duplicateThreshold) {
         int consecutiveDuplicates = 0;
-        int fileIndex = startIndex == 0 ? 1 : 1; // 第一个线程从1开始，第二个线程也从1开始
+        int fileIndex = 1;
+        String threadPrefix = startIndex == 0 ? "thread1_" : "thread2_";
         
         for (int i = startIndex; i < endIndex; i++) {
             final int currentCount = i + 1;
             SwingUtilities.invokeLater(() -> 
                 downloadCounterLabel.setText("当前下载: " + currentCount + "/" + endIndex));
 
-            String imageName = downloadPath + "/image_" + (startIndex == 0 ? fileIndex : "thread2_" + fileIndex) + ".jpg";
+            String extension = detectedImageFormat != null ? "." + detectedImageFormat : ".jpg";
+            String imageName = downloadPath + "/image_" + threadPrefix + fileIndex + extension;
             logEvent("download_start", "file", imageName, "index", currentCount);
             
             try {
@@ -183,6 +186,25 @@ public class ImageDownloader {
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(10000); // 设置连接超时10秒
                 connection.setReadTimeout(10000);    // 设置读取超时10秒
+
+                // 检测图片格式
+                if (detectedImageFormat == null) {
+                    String contentType = connection.getContentType();
+                    if (contentType != null) {
+                        if (contentType.contains("jpeg") || contentType.contains("jpg")) {
+                            detectedImageFormat = "jpg";
+                        } else if (contentType.contains("png")) {
+                            detectedImageFormat = "png";
+                        } else if (contentType.contains("gif")) {
+                            detectedImageFormat = "gif";
+                        } else if (contentType.contains("webp")) {
+                            detectedImageFormat = "webp";
+                        } else if (contentType.contains("bmp")) {
+                            detectedImageFormat = "bmp";
+                        }
+                        logEvent("image_format_detected", "format", detectedImageFormat);
+                    }
+                }
                 
                 int fileSize = connection.getContentLength();
                 InputStream inputStream = new BufferedInputStream(connection.getInputStream(), 8192);
