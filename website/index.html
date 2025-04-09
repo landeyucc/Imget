@@ -13,7 +13,7 @@
 <body>
   <header class="header">
     <div class="header-content">
-      <h2>Imget</h2>
+      <h2><img src="https://files-plus.coldsea.vip/gitcp/imget/Imget.png" alt="Logo" width="40px" height="40px" style="transform: translateY(10px);" />&nbsp;Imget</h2>
       <nav class="nav-links">
         <a href="#home">首页</a>
         <a href="#features">功能特点与使用场景</a>
@@ -37,9 +37,11 @@
           <a href="https://github.com/landeyucc/Imget/releases/" class="btn" download="Imget.jar.zip">GitHub下载</a>
         </div>
         <div class="hero-image">
-          <img src="https://files-plus.coldsea.vip/gitcp/imget/app.jpg" alt="Imget Screenshot" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+          <img src="https://files-plus.coldsea.vip/gitcp/imget/app.jpg" alt="Imget Screenshot" id="demophoto">
         </div>
       </div>
+	  <span class="tsinfo">Imget使用Java编写，运行Imget至少需要JDK17及以上版本来运行。</span><br />
+	  <span class="tsinfo ispc">没有配置环境变量？<a href="https://files-plus.coldsea.vip/gitcp/imget/javapath-set.rar">下载PowerShell配置脚本</a></span>&nbsp;<span class="tsinfo ispc"><a href="https://download.oracle.com/java/17/archive/jdk-17.0.12_windows-x64_bin.exe">下载JDK17</a>&nbsp;<a href="https://download.oracle.com/java/21/latest/jdk-21_windows-x64_bin.exe">下载JDK21</a></span>
     </div>
   </section>
 
@@ -64,6 +66,7 @@
       </div>
     </div>
     <br />
+	
     <div class="container" id="usage">
       <div class="grid">
         <div class="card">
@@ -85,4 +88,26 @@
     <span>©2025&nbsp;<a href="https://github.com/landeyucc/">@landeyucc</a>&nbsp;保留所有权利。<br class="nopc"/>Powered by <a href="https://coldsea.vip/" target="_blank">ColdSea.VIP</a></span>
   </footer>
 </body>
+<script>
+	const vh = window.innerHeight;
+	let lastScrollTop = window.scrollY;
+	window.addEventListener('wheel', (event) => {
+	    event.preventDefault();
+	    const currentScrollTop = window.scrollY;
+	    if (event.deltaY > 0) { 
+			// 向下滚动
+	        window.scroll({
+	            top: currentScrollTop + vh,
+	            behavior: 'smooth'
+	        });
+	    } else { 
+			// 向上滚动
+	        window.scroll({
+	            top: currentScrollTop - vh,
+	            behavior: 'smooth'
+	        });
+	    }
+	});
+</script>
+<script src="https://files-plus.coldsea.vip/spcoreapi/lsapi/hidden_gd.js"></script>
 </html>
