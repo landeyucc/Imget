@@ -9,12 +9,19 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 public class ImageDownloader {
     private static boolean isDownloading = false;
     private static boolean isRetrying = false;
     private static JLabel retryLabel = new JLabel("重试中...");
     private static String detectedImageFormat = null; // 存储检测到的图片格式
+    private static volatile Set<String> md5Set = new HashSet<>();
+    
+    public static void setMd5Set(Set<String> md5Set) {
+        ImageDownloader.md5Set = md5Set;
+    }
     
     public static boolean isDownloading() {
         return isDownloading;
@@ -133,10 +140,9 @@ public class ImageDownloader {
                 if (downloadImage(apiUrl, imageName, progressBar, currentProgressLabel)) {
                     String md5 = calculateMD5(new File(imageName));
                     synchronized (mapLock) {
-                        if (imageMap.containsValue(md5)) {
+                        if (md5Set.contains(md5)) {
                             logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
                             new File(imageName).delete();
-                            imageMap.put(imageName, md5);
                             consecutiveDuplicates++;
                             
                             if (consecutiveDuplicates >= duplicateThreshold) {
@@ -152,6 +158,7 @@ public class ImageDownloader {
                             imageMap.put(imageName, md5);
                             consecutiveDuplicates = 0;
                             fileIndex++;
+                            md5Set.add(md5);
                         }
                         writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                     }

@@ -9,6 +9,12 @@ import java.awt.*;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import java.nio.file.Files;
+import java.util.Set;
+import java.util.HashSet;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MainFrame extends JFrame {
     private JProgressBar progressBar1;
@@ -128,7 +134,90 @@ public class MainFrame extends JFrame {
     private void addInputFields(JPanel panel) {
         // API URL输入
         JLabel apiUrlLabel = UIUtils.createStyledLabel("请输入随机图片 API 链接:");
-        apiUrlField = UIUtils.createStyledTextField(727, 35);
+        
+        // 创建API URL输入面板
+        JPanel apiUrlPanel = new JPanel(new BorderLayout(5, 0));
+        apiUrlPanel.setBackground(Constants.BACKGROUND_COLOR());
+        apiUrlField = UIUtils.createStyledTextField(600, 35);
+        apiUrlPanel.add(apiUrlField, BorderLayout.CENTER);
+        
+        // 添加浏览按钮
+        JButton apiBrowseButton = UIUtils.createStyledButton("浏览");
+        apiBrowseButton.setPreferredSize(new Dimension(80, 35));
+        apiBrowseButton.setMinimumSize(new Dimension(80, 35));
+        apiBrowseButton.setMaximumSize(new Dimension(80, 35));
+        apiBrowseButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setDialogTitle("选择JSON文件");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
+            
+            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                try {
+                    String fileContent = new String(Files.readAllBytes(selectedFile.toPath()), "UTF-8");
+                    fileContent = fileContent.replace("\uFEFF", ""); // 移除BOM头
+                    fileContent = fileContent.trim(); // 移除首尾空白字符
+                    
+                    // 验证JSON格式
+                    if (!(fileContent.startsWith("{") && fileContent.endsWith("}")) && 
+                        !(fileContent.startsWith("[") && fileContent.endsWith("]"))) {
+                        throw new Exception("JSON格式无效，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
+                    }
+                    
+                    // 尝试解析JSON，无论是对象还是数组格式
+                    Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
+                    String sourceUrl = "";
+                    
+                    if (jsonObj instanceof JSONObject) {
+                        JSONObject json = (JSONObject) jsonObj;
+                        if (!json.has("source_url")) {
+                            throw new Exception("JSON中缺少必需的'source_url'字段");
+                        }
+                        sourceUrl = json.getString("source_url");
+                        
+                        // 收集所有md5值
+                        Set<String> md5Set = new HashSet<>();
+                        for (String key : json.keySet()) {
+                            if (key.startsWith("md5")) {
+                                md5Set.add(json.getString(key));
+                            }
+                        }
+                        // 将md5集合存储在内存中
+                        ImageDownloader.setMd5Set(md5Set);
+                    } else if (jsonObj instanceof org.json.JSONArray) {
+                        org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
+                        if (jsonArray.length() > 0) {
+                            // 收集所有md5值
+                            Set<String> md5Set = new HashSet<>();
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                JSONObject item = jsonArray.getJSONObject(i);
+                                if (item.has("md5")) {
+                                    md5Set.add(item.getString("md5"));
+                                }
+                            }
+                            // 将md5集合存储在内存中
+                            ImageDownloader.setMd5Set(md5Set);
+                            
+                            JSONObject firstItem = jsonArray.getJSONObject(0);
+                            if (!firstItem.has("source_url")) {
+                                throw new Exception("JSON数组中缺少必需的'source_url'字段");
+                            }
+                            sourceUrl = firstItem.getString("source_url");
+                        } else {
+                            throw new Exception("JSON数组为空");
+                        }
+                    } else {
+                        throw new Exception("JSON格式无效");
+                    }
+                    
+                    apiUrlField.setText(sourceUrl);
+                } catch (Exception ex) {
+                    UIUtils.showErrorMessage("读取JSON文件失败：" + ex.getMessage());
+                }
+            }
+        });
+        apiUrlPanel.add(apiBrowseButton, BorderLayout.EAST);
         
         // 下载设置面板
         JPanel downloadSettingsPanel = createDownloadSettingsPanel();
@@ -148,7 +237,7 @@ public class MainFrame extends JFrame {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 20, 0);  // 增加底部间距
-        panel.add(apiUrlField, gbc);
+        panel.add(apiUrlPanel, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 3;
@@ -181,13 +270,76 @@ public class MainFrame extends JFrame {
         browseButton.setPreferredSize(new Dimension(80, 35));
         browseButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            fileChooser.setDialogTitle("选择下载目录");
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setDialogTitle("选择JSON文件");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
             
             if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                String selectedPath = fileChooser.getSelectedFile().getAbsolutePath();
-                downloadPathField.setText(selectedPath + File.separator + 
-                    "Imget_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+                File selectedFile = fileChooser.getSelectedFile();
+                try {
+                    String fileContent = new String(Files.readAllBytes(selectedFile.toPath()), "UTF-8");
+                    fileContent = fileContent.replace("\uFEFF", ""); // 移除BOM头
+                    fileContent = fileContent.trim(); // 移除首尾空白字符
+                    
+                    // 验证JSON格式
+                    if (!(fileContent.startsWith("{") && fileContent.endsWith("}")) && 
+                        !(fileContent.startsWith("[") && fileContent.endsWith("]"))) {
+                        throw new Exception("JSON格式无效，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
+                    }
+                    
+                    // 尝试解析JSON，无论是对象还是数组格式
+                    Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
+                    String sourceUrl = "";
+                    
+                    if (jsonObj instanceof JSONObject) {
+                        JSONObject json = (JSONObject) jsonObj;
+                        if (!json.has("source_url")) {
+                            throw new Exception("JSON中缺少必需的'source_url'字段");
+                        }
+                        sourceUrl = json.getString("source_url");
+                        
+                        // 收集所有md5值
+                        Set<String> md5Set = new HashSet<>();
+                        for (String key : json.keySet()) {
+                            if (key.startsWith("md5")) {
+                                md5Set.add(json.getString(key));
+                            }
+                        }
+                        // 将md5集合存储在内存中
+                        ImageDownloader.setMd5Set(md5Set);
+                    } else if (jsonObj instanceof org.json.JSONArray) {
+                        org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
+                        if (jsonArray.length() > 0) {
+                            // 收集所有md5值
+                            Set<String> md5Set = new HashSet<>();
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                JSONObject item = jsonArray.getJSONObject(i);
+                                if (item.has("md5")) {
+                                    md5Set.add(item.getString("md5"));
+                                }
+                            }
+                            // 将md5集合存储在内存中
+                            ImageDownloader.setMd5Set(md5Set);
+                            
+                            JSONObject firstItem = jsonArray.getJSONObject(0);
+                            if (!firstItem.has("source_url")) {
+                                throw new Exception("JSON数组中缺少必需的'source_url'字段");
+                            }
+                            sourceUrl = firstItem.getString("source_url");
+                        } else {
+                            throw new Exception("JSON数组为空");
+                        }
+                    } else {
+                        throw new Exception("JSON格式无效");
+                    }
+                    
+                    apiUrlField.setText(sourceUrl);
+                    
+                    // 收集所有md5值
+
+                } catch (Exception ex) {
+                    UIUtils.showErrorMessage("读取JSON文件失败：" + ex.getMessage());
+                }
             }
         });
 
@@ -196,6 +348,8 @@ public class MainFrame extends JFrame {
         pathPanel.setBackground(Constants.BACKGROUND_COLOR());
         pathPanel.add(downloadPathField, BorderLayout.CENTER);
         pathPanel.add(browseButton, BorderLayout.EAST);
+        pathPanel.setMinimumSize(new Dimension(500, 35));
+        pathPanel.setPreferredSize(new Dimension(500, 35));
 
         // 布局组件
         gbc.gridx = 0;
