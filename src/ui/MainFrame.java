@@ -50,7 +50,7 @@ public class MainFrame extends JFrame {
         try {
             setIconImage(UIUtils.loadIcon(Constants.ICON_PATH));
         } catch (Exception e) {
-            System.out.println("无法加载图标: " + e.getMessage());
+            System.out.println("Icon loading error: " + e.getMessage());
         }
     }
 
@@ -141,7 +141,7 @@ public class MainFrame extends JFrame {
         apiUrlPanel.add(apiUrlField, BorderLayout.CENTER);
         
         // 添加JSON文件选择按钮
-        JButton jsonBrowseButton = UIUtils.createStyledButton("续传");
+        JButton jsonBrowseButton = UIUtils.createStyledButton("加载");
         jsonBrowseButton.setPreferredSize(new Dimension(80, 35));
         jsonBrowseButton.setMinimumSize(new Dimension(80, 35));
         jsonBrowseButton.setMaximumSize(new Dimension(80, 35));
@@ -213,83 +213,7 @@ public class MainFrame extends JFrame {
         });
         apiUrlPanel.add(jsonBrowseButton, BorderLayout.EAST);
         
-        // 添加浏览按钮
-        JButton apiBrowseButton = UIUtils.createStyledButton("续传");
-        apiBrowseButton.setPreferredSize(new Dimension(80, 35));
-        apiBrowseButton.setMinimumSize(new Dimension(80, 35));
-        apiBrowseButton.setMaximumSize(new Dimension(80, 35));
-        apiBrowseButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fileChooser.setDialogTitle("选择JSON文件");
-            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
-            
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                try {
-                    String fileContent = new String(Files.readAllBytes(selectedFile.toPath()), "UTF-8");
-                    fileContent = fileContent.replace("\uFEFF", ""); // 移除BOM头
-                    fileContent = fileContent.trim(); // 移除首尾空白字符
-                    
-                    // 验证JSON格式
-                    if (!(fileContent.startsWith("{") && fileContent.endsWith("}")) && 
-                        !(fileContent.startsWith("[") && fileContent.endsWith("]"))) {
-                        throw new Exception("JSON格式无效，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
-                    }
-                    
-                    // 尝试解析JSON，无论是对象还是数组格式
-                    Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
-                    String sourceUrl = "";
-                    
-                    if (jsonObj instanceof JSONObject) {
-                        JSONObject json = (JSONObject) jsonObj;
-                        if (!json.has("source_url")) {
-                            throw new Exception("JSON中缺少必需的'source_url'字段");
-                        }
-                        sourceUrl = json.getString("source_url");
-                        
-                        // 收集所有md5值
-                        Set<String> md5Set = new HashSet<>();
-                        for (String key : json.keySet()) {
-                            if (key.startsWith("md5")) {
-                                md5Set.add(json.getString(key));
-                            }
-                        }
-                        // 将md5集合存储在内存中
-                        ImageDownloader.setMd5Set(md5Set);
-                    } else if (jsonObj instanceof org.json.JSONArray) {
-                        org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
-                        if (jsonArray.length() > 0) {
-                            // 收集所有md5值
-                            Set<String> md5Set = new HashSet<>();
-                            for (int i = 0; i < jsonArray.length(); i++) {
-                                JSONObject item = jsonArray.getJSONObject(i);
-                                if (item.has("md5")) {
-                                    md5Set.add(item.getString("md5"));
-                                }
-                            }
-                            // 将md5集合存储在内存中
-                            ImageDownloader.setMd5Set(md5Set);
-                            
-                            JSONObject firstItem = jsonArray.getJSONObject(0);
-                            if (!firstItem.has("source_url")) {
-                                throw new Exception("JSON数组中缺少必需的'source_url'字段");
-                            }
-                            sourceUrl = firstItem.getString("source_url");
-                        } else {
-                            throw new Exception("JSON数组为空");
-                        }
-                    } else {
-                        throw new Exception("JSON格式无效");
-                    }
-                    
-                    apiUrlField.setText(sourceUrl);
-                } catch (Exception ex) {
-                    UIUtils.showErrorMessage("读取JSON文件失败：" + ex.getMessage());
-                }
-            }
-        });
-        apiUrlPanel.add(apiBrowseButton, BorderLayout.EAST);
+
         
         // 下载设置面板
         JPanel downloadSettingsPanel = createDownloadSettingsPanel();

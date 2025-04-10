@@ -116,15 +116,15 @@ public class UIUtils {
         if (iconUrl != null) {
             try {
                 image = ImageIO.read(iconUrl);
-                System.out.println("成功加载图标: " + iconPath);
+                System.out.println("Icon loading: " + iconPath);
             } catch (IOException ex) {
-                System.err.println("加载图标失败: " + ex.getMessage());
+                System.err.println("Icon loading error: " + ex.getMessage());
                 cachedIcon = null; // 重置缓存
                 throw ex;
             }
         } else {
-            System.err.println("无法找到图标文件: " + iconPath);
-            throw new IOException("无法加载图标: " + iconPath + "，请确保资源路径正确");
+            System.err.println("Icon file not found: " + iconPath);
+            throw new IOException("Icon loading error: " + iconPath + "not found");
         }
         
         cachedIcon = image;

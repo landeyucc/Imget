@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class ImageDownloader {
     private static boolean isDownloading = false;
@@ -172,6 +174,53 @@ public class ImageDownloader {
         }
     }
 
+    private static String processImageUrl(String apiUrl) {
+        try {
+            // 尝试连接API获取响应
+            URL url = new URL(apiUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+
+            // 读取响应内容
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            String responseStr = response.toString();
+            // 检查响应是否为JSON格式
+            if (responseStr.trim().startsWith("{")) {
+                try {
+                    JSONObject json = new JSONObject(responseStr);
+                    // 尝试获取imgurl或url字段
+                    String imageUrl = null;
+                    if (json.has("imgurl")) {
+                        imageUrl = json.getString("imgurl");
+                    } else if (json.has("url")) {
+                        imageUrl = json.getString("url");
+                    }
+
+                    if (imageUrl != null) {
+                        // 处理URL中的转义字符
+                        return imageUrl.replace("\\/", "/");
+                    }
+                } catch (JSONException e) {
+                    logEvent("json_parse_error", "error", e.getMessage());
+                }
+            }
+            // 如果不是JSON或没有找到图片URL，直接返回原始URL
+            return apiUrl.replace("\\/", "/");
+        } catch (IOException e) {
+            logEvent("url_process_error", "error", e.getMessage());
+            return apiUrl;
+        }
+    }
+
     private static boolean downloadImage(String imageUrl, String imageName,
             JProgressBar progressBar, JLabel currentProgressLabel) {
         int maxRetries = 10;
@@ -188,7 +237,9 @@ public class ImageDownloader {
                     Thread.sleep(retryInterval);
                 }
                 
-                URL url = new URL(imageUrl);
+                // 处理图片URL
+                String processedUrl = processImageUrl(imageUrl);
+                URL url = new URL(processedUrl);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(10000); // 设置连接超时10秒
