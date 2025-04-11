@@ -134,7 +134,7 @@ public class ImageDownloader {
                 downloadCounterLabel.setText("当前下载: " + currentCount + "/" + endIndex));
 
             String extension = detectedImageFormat != null ? "." + detectedImageFormat : ".jpg";
-            String imageName = downloadPath + "/image_" + threadPrefix + fileIndex + extension;
+            String imageName = downloadPath + "/image_" + threadPrefix + currentCount + extension;
             logEvent("download_start", "file", imageName, "index", currentCount);
             
             try {
@@ -147,12 +147,17 @@ public class ImageDownloader {
                             new File(imageName).delete();
                             consecutiveDuplicates++;
                             
+                            // 将删除的文件信息添加到imageMap，并标记为deleted状态
+                            imageMap.put(imageName, md5);
+                            
                             if (consecutiveDuplicates >= duplicateThreshold) {
                                 logEvent("download_terminated", "reason", "consecutive_duplicates_threshold_reached", "threshold", duplicateThreshold);
                                 SwingUtilities.invokeLater(() -> {
                                     currentProgressLabel.setText("已终止：连续重复次数达到" + duplicateThreshold + "次");
                                     progressBar.setValue(100);
                                 });
+                                // 在终止前写入最后的JSON记录
+                                writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                                 return;
                             }
                         } else {
@@ -343,29 +348,90 @@ public class ImageDownloader {
     }
 
     private static void writeToJson(Map<String, String> imageMap, String jsonFileName, String apiUrl) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(jsonFileName));
-        writer.write("[\n");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : imageMap.entrySet()) {
-            if (!first) {
-                writer.write(",\n");
+        Map<String, JsonRecord> existingRecords = new LinkedHashMap<>();
+        File jsonFile = new File(jsonFileName);
+        
+        // Read existing records if file exists
+        if (jsonFile.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(jsonFileName))) {
+                StringBuilder content = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line);
+                }
+                
+                // Parse existing JSON
+                if (content.length() > 0) {
+                    org.json.JSONArray array = new org.json.JSONArray(content.toString());
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject obj = array.getJSONObject(i);
+                        String name = obj.getString("modified_name");
+                        JsonRecord record = new JsonRecord(
+                            obj.getString("source_url"),
+                            name,
+                            obj.getLong("file_size"),
+                            obj.getString("md5"),
+                            obj.getString("status")
+                        );
+                        existingRecords.put(name, record);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
+        
+        // Update records with new information
+        for (Map.Entry<String, String> entry : imageMap.entrySet()) {
             String imagePath = entry.getKey();
             String md5 = entry.getValue();
             File file = new File(imagePath);
-            boolean exists = file.exists();
-            long fileSize = exists ? file.length() : 0;
-            String status = exists ? "saved" : "deleted";
-            writer.write("  {\n");
-            writer.write("    \"source_url\": \"" + apiUrl + "\",\n");
-            writer.write("    \"modified_name\": \"" + file.getName() + "\",\n");
-            writer.write("    \"file_size\": " + fileSize + ",\n");
-            writer.write("    \"md5\": \"" + md5 + "\",\n");
-            writer.write("    \"status\": \"" + status + "\"\n");
-            writer.write("  }");
-            first = false;
+            String fileName = file.getName();
+            
+            JsonRecord record = existingRecords.get(fileName);
+            if (record == null || !record.md5.equals(md5)) {
+                boolean exists = file.exists();
+                long fileSize = exists ? file.length() : 0;
+                String status = exists ? "saved" : "deleted";
+                existingRecords.put(fileName, new JsonRecord(apiUrl, fileName, fileSize, md5, status));
+            }
         }
-        writer.write("\n]");
-        writer.close();
+        
+        // Write updated records to file
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(jsonFileName))) {
+            writer.write("[\n");
+            boolean first = true;
+            for (JsonRecord record : existingRecords.values()) {
+                if (!first) {
+                    writer.write(",\n");
+                }
+                writer.write("  {\n");
+                writer.write("    \"source_url\": \"" + record.sourceUrl + "\",\n");
+                writer.write("    \"modified_name\": \"" + record.name + "\",\n");
+                writer.write("    \"file_size\": " + record.fileSize + ",\n");
+                writer.write("    \"md5\": \"" + record.md5 + "\",\n");
+                writer.write("    \"status\": \"" + record.status + "\"\n");
+                writer.write("  }");
+                first = false;
+            }
+            writer.write("\n]");
+        }
     }
+    
+    private static class JsonRecord {
+        String sourceUrl;
+        String name;
+        long fileSize;
+        String md5;
+        String status;
+        
+        JsonRecord(String sourceUrl, String name, long fileSize, String md5, String status) {
+            this.sourceUrl = sourceUrl;
+            this.name = name;
+            this.fileSize = fileSize;
+            this.md5 = md5;
+            this.status = status;
+        }
+    }
+    
 }

@@ -173,23 +173,25 @@ public class MainFrame extends JFrame {
                             throw new Exception("JSON中缺少必需的'source_url'字段");
                         sourceUrl = json.getString("source_url");
                         
-                        // 收集所有md5值
+                        // 只收集status为saved的md5值
                         Set<String> md5Set = new HashSet<>();
                         for (String key : json.keySet()) {
-                            if (key.startsWith("md5"))
+                            if (key.startsWith("md5") && json.has("status") && "saved".equals(json.getString("status"))) {
                                 md5Set.add(json.getString(key));
+                            }
                         }
                         // 将md5集合存储在内存中
                         ImageDownloader.setMd5Set(md5Set);
                     } else if (jsonObj instanceof org.json.JSONArray) {
                         org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
                         if (jsonArray.length() > 0) {
-                            // 收集所有md5值
+                            // 只收集status为saved的md5值
                             Set<String> md5Set = new HashSet<>();
                             for (int i = 0; i < jsonArray.length(); i++) {
                                 JSONObject item = jsonArray.getJSONObject(i);
-                                if (item.has("md5"))
+                                if (item.has("md5") && item.has("status") && "saved".equals(item.getString("status"))) {
                                     md5Set.add(item.getString("md5"));
+                                }
                             }
                             // 将md5集合存储在内存中
                             ImageDownloader.setMd5Set(md5Set);
