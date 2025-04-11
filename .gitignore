@@ -1,10 +1,7 @@
-full.java
-/build
+/build
 *.jar
 image_info.json
-full1.0.java
 /out
-/bin
 /bin
 *.jks
 SignJar.bat

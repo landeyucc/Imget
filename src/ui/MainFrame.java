@@ -3,6 +3,8 @@ package src.ui;
 import src.utils.Constants;
 import src.utils.UIUtils;
 import src.model.ImageDownloader;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,6 +33,18 @@ public class MainFrame extends JFrame {
     private int selectedDuplicateThreshold = 50; // 默认中等级别
 
     public MainFrame() {
+        // 设置FlatLaf主题
+        FlatLightLaf.setup();
+        // 应用现代扁平化样式
+        UIManager.put("Button.arc", 8);
+        UIManager.put("Component.arc", 8);
+        UIManager.put("ProgressBar.arc", 8);
+        UIManager.put("TextComponent.arc", 8);
+        UIManager.put("ScrollBar.thumbArc", 8);
+        UIManager.put("ScrollBar.trackArc", 8);
+        UIManager.put("Button.borderWidth", 2);
+        UIManager.put("TitlePane.unifiedBackground", true);
+        
         SwingUtilities.invokeLater(() -> {
             initializeFrame();
             createUI();
@@ -41,11 +55,48 @@ public class MainFrame extends JFrame {
     private void initializeFrame() {
         setTitle("Imget");
         setSize(800, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLayout(new BorderLayout());
         getContentPane().setBackground(Constants.BACKGROUND_COLOR());
         setLocationRelativeTo(null);
         setResizable(false);
+        
+        // 添加窗口关闭事件监听器
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                if (ImageDownloader.isDownloading()) {
+                    int confirm = JOptionPane.showConfirmDialog(MainFrame.this,
+                        "当前有下载任务正在进行，是否等待当前下载完成后关闭？",
+                        "确认关闭",
+                        JOptionPane.YES_NO_OPTION);
+                    
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        // 创建一个监控线程等待下载完成
+                        new Thread(() -> {
+                            while (ImageDownloader.isDownloading()) {
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            // 下载完成后关闭窗口
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                System.exit(0);
+                            });
+                        }).start();
+                    } else {
+                        dispose();
+                        System.exit(0);
+                    }
+                } else {
+                    dispose();
+                    System.exit(0);
+                }
+            }
+        });
         
         try {
             setIconImage(UIUtils.loadIcon(Constants.ICON_PATH));
@@ -88,7 +139,7 @@ public class MainFrame extends JFrame {
         aboutGbc.weightx = 0.0;
         aboutGbc.weighty = 0.0;
         aboutGbc.anchor = GridBagConstraints.NORTHEAST;
-        aboutGbc.insets = new Insets(5, 0, 0, 10);
+        aboutGbc.insets = new Insets(5, 0, 10, 10);
         backgroundPanel.add(aboutPanel, aboutGbc);
     }
 
@@ -116,7 +167,7 @@ public class MainFrame extends JFrame {
         JLabel titleLabel = UIUtils.createStyledLabel("Imget");
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
         
-        JLabel descriptionLabel = UIUtils.createStyledLabel("一个轻量级的图片api下载器。简易，简约，简单。");
+        JLabel descriptionLabel = UIUtils.createStyledLabel("一个轻量级的图片API下载器。简易，简约，简单。");
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -146,13 +197,9 @@ public class MainFrame extends JFrame {
         jsonBrowseButton.setMinimumSize(new Dimension(80, 35));
         jsonBrowseButton.setMaximumSize(new Dimension(80, 35));
         jsonBrowseButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fileChooser.setDialogTitle("选择JSON文件");
-            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
-            
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
+            JFileChooser chooser = getFileChooser(false);
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = chooser.getSelectedFile();
                 try {
                     String fileContent = new String(Files.readAllBytes(selectedFile.toPath()), "UTF-8");
                     fileContent = fileContent.replace("\uFEFF", ""); // 移除BOM头
@@ -267,12 +314,9 @@ public class MainFrame extends JFrame {
         JButton browseButton = UIUtils.createStyledButton("浏览");
         browseButton.setPreferredSize(new Dimension(80, 35));
         browseButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            fileChooser.setDialogTitle("选择下载目录");
-            
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File selectedDirectory = fileChooser.getSelectedFile();
+            JFileChooser chooser = getFileChooser(true);
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File selectedDirectory = chooser.getSelectedFile();
                 downloadPathField.setText(selectedDirectory.getAbsolutePath());
             }
         });
@@ -380,7 +424,9 @@ public class MainFrame extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
         progressBar1 = UIUtils.createStyledProgressBar();
+        progressBar1.setPreferredSize(new Dimension(progressBar1.getPreferredSize().width, 40));
         progressBar2 = UIUtils.createStyledProgressBar();
+        progressBar2.setPreferredSize(new Dimension(progressBar2.getPreferredSize().width, 40));
         downloadCounterLabel1 = UIUtils.createStyledLabel("线程1下载: 0/0");
         downloadCounterLabel2 = UIUtils.createStyledLabel("线程2下载: 0/0");
         currentProgressLabel1 = UIUtils.createStyledLabel("线程1进度: 0%");
@@ -468,37 +514,40 @@ public class MainFrame extends JFrame {
             
             downloadButton.setEnabled(!ImageDownloader.isDownloading());
             downloadButton.setText(ImageDownloader.isRetrying() ? "立即重试" : "下载");
+            
             String apiUrl = apiUrlField.getText();
             String downloadPath = downloadPathField.getText();
-            int duplicateThreshold = selectedDuplicateThreshold;
             
-            SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                @Override
-                protected Void doInBackground() throws Exception {
-                    ImageDownloader.downloadImages(apiUrl, count, downloadPath, 
-                        progressBar1, progressBar2,
-                        downloadCounterLabel1, downloadCounterLabel2,
-                        currentProgressLabel1, currentProgressLabel2,
-                        duplicateThreshold);
-                    return null;
-                }
-                
-                @Override
-                protected void done() {
-                    SwingUtilities.invokeLater(() -> {
-                        downloadButton.setEnabled(true);
-                    });
-                }
-            };
-            worker.execute();
-        } catch (NumberFormatException ex) {
-            UIUtils.showErrorMessage("请输入有效的下载次数");
+            // 创建下载目录
+            File downloadDir = new File(downloadPath);
+            if (!downloadDir.exists()) {
+                downloadDir.mkdirs();
+            }
+            
+            // 开始下载
+            ImageDownloader.downloadImages(
+                apiUrl,
+                count,
+                downloadPath,
+                progressBar1,
+                progressBar2,
+                downloadCounterLabel1,
+                downloadCounterLabel2,
+                currentProgressLabel1,
+                currentProgressLabel2,
+                selectedDuplicateThreshold
+            );
+        } catch (NumberFormatException e) {
+            UIUtils.showErrorMessage("下载次数必须是一个有效的数字");
+        } catch (Exception e) {
+            UIUtils.showErrorMessage("启动下载失败：" + e.getMessage());
         }
     }
 
     private void showAboutDialog() {
-        JDialog dialog = new JDialog(this, "关于 Imget", true);
+        JDialog dialog = new JDialog(this, "关于", true);
         dialog.setLayout(new BorderLayout());
+        dialog.setBackground(Constants.BACKGROUND_COLOR());
         
         JEditorPane editorPane = new JEditorPane();
         editorPane.setContentType("text/html");
@@ -532,5 +581,31 @@ public class MainFrame extends JFrame {
         dialog.setLocationRelativeTo(this);
         dialog.setResizable(false);
         dialog.setVisible(true);
+    }
+
+    private JFileChooser fileChooser;
+
+    private JFileChooser getFileChooser(boolean directoriesOnly) {
+        if (fileChooser == null) {
+            fileChooser = new JFileChooser();
+            // 应用现代文件选择器样式
+            fileChooser.putClientProperty(FlatClientProperties.STYLE, ""+ 
+                "[style]Button.arc=8;" +
+                "Component.arc=8;" +
+                "ScrollBar.width=10;" +
+                "ScrollBar.track=lighten(@background,3%);" +
+                "Table.showHorizontalLines=true;" +
+                "Table.showVerticalLines=true"
+            );
+        }
+        fileChooser.setFileSelectionMode(directoriesOnly ? JFileChooser.DIRECTORIES_ONLY : JFileChooser.FILES_ONLY);
+        if (!directoriesOnly) {
+            fileChooser.setDialogTitle("选择JSON文件");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
+        } else {
+            fileChooser.setDialogTitle("选择下载目录");
+            fileChooser.setFileFilter(null);
+        }
+        return fileChooser;
     }
 }

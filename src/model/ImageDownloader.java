@@ -17,9 +17,14 @@ import org.json.JSONException;
 public class ImageDownloader {
     private static boolean isDownloading = false;
     private static boolean isRetrying = false;
+    private static boolean isTerminating = false;
     private static JLabel retryLabel = new JLabel("重试中...");
     private static String detectedImageFormat = null; // 存储检测到的图片格式
     private static volatile Set<String> md5Set = new HashSet<>();
+    
+    public static void setTerminating(boolean terminating) {
+        isTerminating = terminating;
+    }
     
     public static void setMd5Set(Set<String> md5Set) {
         ImageDownloader.md5Set = md5Set;
@@ -150,10 +155,11 @@ public class ImageDownloader {
                             // 将删除的文件信息添加到imageMap，并标记为deleted状态
                             imageMap.put(imageName, md5);
                             
-                            if (consecutiveDuplicates >= duplicateThreshold) {
-                                logEvent("download_terminated", "reason", "consecutive_duplicates_threshold_reached", "threshold", duplicateThreshold);
+                            if (consecutiveDuplicates >= duplicateThreshold || isTerminating) {
+                                String terminateReason = isTerminating ? "用户请求终止" : "连续重复次数达到" + duplicateThreshold + "次";
+                                logEvent("download_terminated", "reason", terminateReason);
                                 SwingUtilities.invokeLater(() -> {
-                                    currentProgressLabel.setText("已终止：连续重复次数达到" + duplicateThreshold + "次");
+                                    currentProgressLabel.setText("已终止：" + terminateReason);
                                     progressBar.setValue(100);
                                 });
                                 // 在终止前写入最后的JSON记录
