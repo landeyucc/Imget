@@ -49,7 +49,7 @@ public class Constants {
     
     public static Color PROGRESS_COLOR() {
         if (progressColor == null) {
-            progressColor = new Color(135, 206, 235);
+            progressColor = new Color(0, 0, 140);
         }
         return progressColor;
     }

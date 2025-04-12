@@ -9,3 +9,5 @@ sign.bat
 log.txt
 /res
 *.zip
+/apache-maven-3.9.6
+/target

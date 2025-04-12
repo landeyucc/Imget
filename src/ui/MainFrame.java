@@ -213,6 +213,7 @@ public class MainFrame extends JFrame {
                     // 尝试解析JSON，无论是对象还是数组格式
                     Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
                     String sourceUrl = "";
+                    Set<String> md5Set = new HashSet<>();
                     
                     if (jsonObj instanceof JSONObject) {
                         JSONObject json = (JSONObject) jsonObj;
@@ -221,27 +222,65 @@ public class MainFrame extends JFrame {
                         sourceUrl = json.getString("source_url");
                         
                         // 只收集status为saved的md5值
-                        Set<String> md5Set = new HashSet<>();
                         for (String key : json.keySet()) {
-                            if (key.startsWith("md5") && json.has("status") && "saved".equals(json.getString("status"))) {
-                                md5Set.add(json.getString(key));
-                            }
+    if (key.startsWith("md5")) {
+        JSONObject item = json.getJSONObject(key);
+        if (item.has("status") && "saved".equals(item.getString("status"))) {
+            String md5Value = item.getString("md5");
+            md5Set.add(md5Value);
+            System.out.println("发现有效MD5记录: " + md5Value);
+        }
+    }
+}
+                        
+                        // 创建并写入cachemd5list.json文件
+                        File downloadDir = new File(downloadPathField.getText());
+if (!downloadDir.exists()) {
+    downloadDir.mkdirs();
+    System.out.println("创建下载目录: " + downloadDir.getAbsolutePath());
+}
+File cacheFile = new File(downloadDir, "cachemd5list.json");
+System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath());
+                        if (!cacheFile.getParentFile().exists()) {
+                            cacheFile.getParentFile().mkdirs();
                         }
+                        JSONObject cacheJson = new JSONObject();
+                        cacheJson.put("source_url", sourceUrl);
+                        cacheJson.put("md5", md5Set);
+                        Files.write(cacheFile.toPath(), cacheJson.toString(4).getBytes("UTF-8"));
+                        System.out.println("已将源JSON文件中的" + md5Set.size() + "个md5值写入缓存文件：" + cacheFile.getPath());
+                        
                         // 将md5集合存储在内存中
-                        ImageDownloader.setMd5Set(md5Set);
+                        System.out.println("成功写入" + md5Set.size() + "个有效MD5到缓存文件");
                     } else if (jsonObj instanceof org.json.JSONArray) {
                         org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
                         if (jsonArray.length() > 0) {
                             // 只收集status为saved的md5值
-                            Set<String> md5Set = new HashSet<>();
                             for (int i = 0; i < jsonArray.length(); i++) {
                                 JSONObject item = jsonArray.getJSONObject(i);
                                 if (item.has("md5") && item.has("status") && "saved".equals(item.getString("status"))) {
                                     md5Set.add(item.getString("md5"));
                                 }
                             }
+                            
+                            // 创建并写入cachemd5list.json文件
+                            File downloadDir = new File(downloadPathField.getText());
+if (!downloadDir.exists()) {
+    downloadDir.mkdirs();
+    System.out.println("创建下载目录: " + downloadDir.getAbsolutePath());
+}
+File cacheFile = new File(downloadDir, "cachemd5list.json");
+System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath());
+                            if (!cacheFile.getParentFile().exists()) {
+                                cacheFile.getParentFile().mkdirs();
+                            }
+                            JSONObject cacheJson = new JSONObject();
+                            cacheJson.put("md5", md5Set);
+                            Files.write(cacheFile.toPath(), cacheJson.toString(4).getBytes("UTF-8"));
+                            System.out.println("已将源JSON文件中的" + md5Set.size() + "个md5值写入缓存文件：" + cacheFile.getPath());
+                            
                             // 将md5集合存储在内存中
-                            ImageDownloader.setMd5Set(md5Set);
+                            System.out.println("成功写入" + md5Set.size() + "个有效MD5到缓存文件");
                             
                             JSONObject firstItem = jsonArray.getJSONObject(0);
                             if (!firstItem.has("source_url"))

@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.HashSet;
 import org.json.JSONObject;
 import org.json.JSONException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class ImageDownloader {
     private static boolean isDownloading = false;
@@ -147,31 +149,49 @@ public class ImageDownloader {
                 if (downloadImage(apiUrl, imageName, progressBar, currentProgressLabel)) {
                     String md5 = calculateMD5(new File(imageName));
                     synchronized (mapLock) {
-                        if (md5Set.contains(md5)) {
+                        // 优先检测缓存文件
+                        File cacheFile = new File(downloadPath, "cachemd5list.json");
+                        boolean isDuplicate = false;
+                        if (cacheFile.exists()) {
+                            try {
+                                JSONObject cacheJson = new JSONObject(new String(Files.readAllBytes(cacheFile.toPath()), "UTF-8"));
+                                if (cacheJson.getJSONArray("md5").toList().contains(md5)) {
+                                    Files.deleteIfExists(Paths.get(imageName));
+                                    consecutiveDuplicates++;
+                                    isDuplicate = true;
+                                    // 将删除的文件信息添加到imageMap，并标记为deleted状态
+                                    imageMap.put(imageName, md5);
+                                    logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        
+                        // 如果不在缓存中，则检查运行时MD5集合
+                        if (!isDuplicate && md5Set.contains(md5)) {
                             logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
                             new File(imageName).delete();
                             consecutiveDuplicates++;
-                            
-                            // 将删除的文件信息添加到imageMap，并标记为deleted状态
                             imageMap.put(imageName, md5);
-                            
-                            if (consecutiveDuplicates >= duplicateThreshold || isTerminating) {
-                                String terminateReason = isTerminating ? "用户请求终止" : "连续重复次数达到" + duplicateThreshold + "次";
-                                logEvent("download_terminated", "reason", terminateReason);
-                                SwingUtilities.invokeLater(() -> {
-                                    currentProgressLabel.setText("已终止：" + terminateReason);
-                                    progressBar.setValue(100);
-                                });
-                                // 在终止前写入最后的JSON记录
-                                writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
-                                return;
-                            }
-                        } else {
+                        } else if (!isDuplicate) {
                             logEvent("download_success", "file", imageName, "md5", md5);
                             imageMap.put(imageName, md5);
                             consecutiveDuplicates = 0;
                             fileIndex++;
                             md5Set.add(md5);
+                        }
+                        
+                        if (consecutiveDuplicates >= duplicateThreshold || isTerminating) {
+                            String terminateReason = isTerminating ? "用户请求终止" : "连续重复次数达到" + duplicateThreshold + "次";
+                            logEvent("download_terminated", "reason", terminateReason);
+                            SwingUtilities.invokeLater(() -> {
+                                currentProgressLabel.setText("已终止：" + terminateReason);
+                                progressBar.setValue(100);
+                            });
+                            // 在终止前写入最后的JSON记录
+                            writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
+                                return;
                         }
                         writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                     }
