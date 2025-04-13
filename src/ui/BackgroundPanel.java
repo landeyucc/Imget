@@ -1,4 +1,4 @@
-package src.ui;
+package ui;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,12 +20,12 @@ public class BackgroundPanel extends JPanel {
     }
     
     private BufferedImage loadBackgroundImage() {
-        try (InputStream is = getClass().getResourceAsStream("/src/resources/bg.jpg")) {
+        try (InputStream is = getClass().getResourceAsStream("/bg.jpg")) {
             if (is != null) {
                 return ImageIO.read(is);
             }
         } catch (IOException e) {
-            System.err.println("加载背景图片失败: " + e.getMessage() + "\n路径: " + getClass().getResource("/src/resources/bg.jpg"));
+            System.err.println("加载背景图片失败: " + e.getMessage() + "\n路径: " + getClass().getResource("/bg.jpg"));
         }
         return null;
     }

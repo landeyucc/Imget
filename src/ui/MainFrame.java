@@ -1,8 +1,8 @@
-package src.ui;
+package ui;
 
-import src.utils.Constants;
-import src.utils.UIUtils;
-import src.model.ImageDownloader;
+import utils.Constants;
+import utils.UIUtils;
+import model.ImageDownloader;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.FlatClientProperties;
 

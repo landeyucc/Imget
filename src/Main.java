@@ -1,6 +1,5 @@
-package src;
 
-import src.ui.MainFrame;
+import ui.MainFrame;
 import javax.swing.SwingUtilities;
 
 public class Main {
@@ -10,4 +9,4 @@ public class Main {
             frame.setVisible(true);
         });
     }
-} 
+}

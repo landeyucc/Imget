@@ -9,7 +9,7 @@ REM 编译所有Java文件到temp/classes目录
 javac --release 17 -d temp\classes -sourcepath src -cp lib\json-20231013.jar;lib\flatlaf-3.4.jar src\*.java src\model\*.java src\ui\*.java src\utils\*.java
 
 REM 复制resources文件夹到temp/classes
-xcopy /E /I /Y src\resources temp\classes\src\resources
+xcopy /E /I /Y src\resources temp\classes
 
 REM 解压依赖jar文件到临时目录
 cd temp\classes
