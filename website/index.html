@@ -86,7 +86,7 @@
     </div>
   </section>
   <footer style="text-align: center; background-color: #fff; padding: 5px;">
-    <span>©2025&nbsp;<a href="https://github.com/landeyucc/">@landeyucc</a>&nbsp;保留所有权利。<br class="nopc"/>Powered by <a href="https://coldsea.vip/" target="_blank">ColdSea</a></span>
+    <p>&copy;<span id="yearSpan"></span>&nbsp;<a href="https://github.com/landeyucc/">@landeyucc</a>&nbsp;保留所有权利。<br class="nopc"/>Powered by <a href="https://coldsea.vip/" target="_blank">ColdSea</a></p>
   </footer>
 </body>
 <!-- <script>
@@ -110,5 +110,13 @@
 	    }
 	});
 </script> -->
+<script>
+    function displayYear() {
+        var year = new Date().getFullYear();
+        var spanElement = document.getElementById("yearSpan");
+        spanElement.textContent = year;
+    }
+	document.addEventListener('DOMContentLoaded', displayYear);
+</script>
 <script src="https://files-plus.coldsea.vip/spcoreapi/lsapi/hidden_gd.js"></script>
 </html>
