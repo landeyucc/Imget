@@ -111,6 +111,18 @@ public class ImageDownloader {
                         e.printStackTrace();
                     }
 
+                    // 生成max_info.json，记录总下载数
+                    try {
+                        JSONObject maxInfo = new JSONObject();
+                        maxInfo.put("complete", "true");
+                        maxInfo.put("apilink", apiUrl);
+                        maxInfo.put("maxnumber", String.valueOf(downloadCount));
+                        Files.write(Paths.get(downloadPath, "max_info.json"), maxInfo.toString(2).getBytes());
+                        logEvent("max_info_created", "file", "max_info.json");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                     SwingUtilities.invokeLater(() -> {
                         currentProgressLabel1.setText("下载完成");
                         currentProgressLabel2.setText("下载完成");
@@ -135,10 +147,15 @@ public class ImageDownloader {
         int fileIndex = 1;
         String threadPrefix = startIndex == 0 ? "thread1_" : "thread2_";
         
+        boolean isMaxCountReached = false;
         for (int i = startIndex; i < endIndex; i++) {
             final int currentCount = i + 1;
             SwingUtilities.invokeLater(() -> 
                 downloadCounterLabel.setText("当前下载: " + currentCount + "/" + endIndex));
+
+            if (currentCount >= endIndex) {
+                isMaxCountReached = true;
+            }
 
             String extension = detectedImageFormat != null ? "." + detectedImageFormat : ".jpg";
             String imageName = downloadPath + "/image_" + threadPrefix + currentCount + extension;
@@ -191,8 +208,10 @@ public class ImageDownloader {
                             });
                             // 在终止前写入最后的JSON记录
                             writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
-                                return;
+                            return;
                         }
+
+
                         writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                     }
                 }
@@ -234,6 +253,18 @@ public class ImageDownloader {
                         imageUrl = json.getString("imgurl");
                     } else if (json.has("url")) {
                         imageUrl = json.getString("url");
+                    } else if (json.has("data")) {
+                        imageUrl = json.getString("data"); 
+                    } else if (json.has("image")) {
+                        imageUrl = json.getString("image");
+                    } else if (json.has("link")) {
+                        imageUrl = json.getString("link"); 
+                    } else if (json.has("src")) {
+                        imageUrl = json.getString("src"); 
+                    } else if (json.has("image_url")) {
+                        imageUrl = json.getString("image_url"); 
+                    } else if (json.has("acgurl")) {
+                        imageUrl = json.getString("acgurl"); 
                     }
 
                     if (imageUrl != null) {

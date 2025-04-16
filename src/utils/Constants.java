@@ -83,7 +83,7 @@ public class Constants {
     }
 
     // 版本信息
-    public static final String VERSION = "1.4e (25041205)";
+    public static final String VERSION = "1.5c (25041603)";
     public static final String AUTHOR = "Lande Yu";
     public static final String WEBSITE = "https://imget.coldsea.vip";
     public static final String GITHUB_URL = "https://github.com/landeyucc/Imget";
