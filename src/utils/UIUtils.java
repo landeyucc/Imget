@@ -44,17 +44,27 @@ public class UIUtils {
 
     public static JButton createStyledButton(String text) {
         JButton button = new JButton(text);
-        button.setBackground(Constants.ACCENT_COLOR());
+        button.setBackground(new Color(0, 0, 0, 0)); // 透明背景
         button.setForeground(Constants.TEXT_COLOR());
         button.setFocusPainted(false);
-        button.setBorderPainted(false);
+        button.setBorderPainted(true);
+        button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Constants.ACCENT_COLOR(), 2),
+            BorderFactory.createEmptyBorder(5, 15, 5, 15)
+        ));
         button.setFont(Constants.BOLD_FONT());
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
         
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 if (button.isEnabled()) {
                     button.setBackground(Constants.HOVER_COLOR());
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Constants.HOVER_COLOR(), 2),
+                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
+                    ));
                 } else {
                     button.setBackground(Constants.COMPONENT_BG_COLOR());
                 }
@@ -63,6 +73,10 @@ public class UIUtils {
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 if (button.isEnabled()) {
                     button.setBackground(Constants.ACCENT_COLOR());
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Constants.ACCENT_COLOR(), 2),
+                        BorderFactory.createEmptyBorder(5, 15, 5, 15)
+                    ));
                 } else {
                     button.setBackground(Constants.COMPONENT_BG_COLOR());
                 }            }

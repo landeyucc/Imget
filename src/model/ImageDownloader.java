@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.json.JSONException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import ui.MainFrame;
 
 public class ImageDownloader {
     private static boolean isDownloading = false;
@@ -130,6 +131,9 @@ public class ImageDownloader {
                         progressBar2.setValue(100);
                         isDownloading = false;
                         isRetrying = false;
+                        isTerminating = false;
+                        // 更新按钮状态
+                        MainFrame.getInstance().updateButtonsState(false);
                     });
                 } catch (Exception e) {
                     e.printStackTrace();

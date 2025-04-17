@@ -42,7 +42,7 @@ public class Constants {
     
     public static Color ACCENT_COLOR() {
         if (accentColor == null) {
-            accentColor = new Color(206, 206, 255);
+            accentColor = new Color(255, 255, 255);
         }
         return accentColor;
     }
@@ -56,7 +56,7 @@ public class Constants {
     
     public static Color HOVER_COLOR() {
         if (hoverColor == null) {
-            hoverColor = new Color(135, 206, 235);
+            hoverColor = new Color(100, 230, 255);
         }
         return hoverColor;
     }
@@ -83,7 +83,7 @@ public class Constants {
     }
 
     // 版本信息
-    public static final String VERSION = "1.5c (25041603)";
+    public static final String VERSION = "1.5c (25041703)";
     public static final String AUTHOR = "Lande Yu";
     public static final String WEBSITE = "https://imget.coldsea.vip";
     public static final String GITHUB_URL = "https://github.com/landeyucc/Imget";

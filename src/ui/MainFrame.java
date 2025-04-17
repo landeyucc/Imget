@@ -9,15 +9,23 @@ import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.Enumeration;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.json.JSONObject;
 import java.nio.file.Files;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MainFrame extends JFrame {
+    private static MainFrame instance;
+    
+    public static MainFrame getInstance() {
+        return instance;
+    }
     private JProgressBar progressBar1;
     private JProgressBar progressBar2;
     private JLabel downloadCounterLabel1;
@@ -30,9 +38,11 @@ public class MainFrame extends JFrame {
     private JTextField downloadPathField;
     private JButton downloadButton;
     private ButtonGroup duplicateThresholdGroup;
+    private JRadioButton mediumButton;
     private int selectedDuplicateThreshold = 50; // 默认中等级别
 
     public MainFrame() {
+        instance = this;
         // 设置FlatLaf主题
         FlatLightLaf.setup();
         // 应用现代扁平化样式
@@ -183,7 +193,7 @@ public class MainFrame extends JFrame {
 
     private void addInputFields(JPanel panel) {
         // API URL输入
-        JLabel apiUrlLabel = UIUtils.createStyledLabel("请输入随机图片 API 链接:");
+        JLabel apiUrlLabel = UIUtils.createStyledLabel("请输入随机图片 API 链接 (或者加载下载记录JSON内的元数据):");
         
         // 创建API URL输入面板
         JPanel apiUrlPanel = new JPanel(new BorderLayout(5, 0));
@@ -196,6 +206,7 @@ public class MainFrame extends JFrame {
         jsonBrowseButton.setPreferredSize(new Dimension(80, 35));
         jsonBrowseButton.setMinimumSize(new Dimension(80, 35));
         jsonBrowseButton.setMaximumSize(new Dimension(80, 35));
+        disableButtons.add(jsonBrowseButton);
         jsonBrowseButton.addActionListener(e -> {
             JFileChooser chooser = getFileChooser(false);
             if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -208,7 +219,7 @@ public class MainFrame extends JFrame {
                     // 验证JSON格式
                     if (!(fileContent.startsWith("{") && fileContent.endsWith("}")) && 
                         !(fileContent.startsWith("[") && fileContent.endsWith("]")))
-                        throw new Exception("JSON格式无效，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
+                        throw new Exception("JSON读取格式失败，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
                     
                     // 尝试解析JSON，无论是对象还是数组格式
                     Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
@@ -352,6 +363,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         // 浏览按钮
         JButton browseButton = UIUtils.createStyledButton("浏览");
         browseButton.setPreferredSize(new Dimension(80, 35));
+        disableButtons.add(browseButton);
         browseButton.addActionListener(e -> {
             JFileChooser chooser = getFileChooser(true);
             if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -401,7 +413,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         duplicateThresholdGroup = new ButtonGroup();
         
         JRadioButton lowButton = new JRadioButton("低(20次)");
-        JRadioButton mediumButton = new JRadioButton("中(50次)", true);
+        mediumButton = new JRadioButton("中(50次)", true);
         JRadioButton highButton = new JRadioButton("高(100次)");
         
         // 设置按钮样式
@@ -438,9 +450,57 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         panel.add(duplicatePanel, gbc);
     }
 
+    // 存储需要在下载时禁用的按钮
+    private List<JButton> disableButtons = new ArrayList<>();
+    private JButton stopButton;
+
+    public void updateButtonsState(boolean isDownloading) {
+        SwingUtilities.invokeLater(() -> {
+            for (JButton button : disableButtons) {
+                button.setEnabled(!isDownloading);
+            }
+            Enumeration<AbstractButton> buttons = duplicateThresholdGroup.getElements();
+            while (buttons.hasMoreElements()) {
+                buttons.nextElement().setEnabled(!isDownloading);
+            }
+            stopButton.setEnabled(isDownloading);
+        });
+    }
+
     private void addDownloadButton(JPanel panel) {
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 10, 0));
+        buttonPanel.setOpaque(false);
+        
         downloadButton = UIUtils.createStyledButton("下载");
+        stopButton = UIUtils.createStyledButton("停止");
         downloadButton.addActionListener(e -> handleDownload());
+        disableButtons.add(downloadButton);
+        downloadButton.setPreferredSize(new Dimension(100, 40));
+        downloadButton.setMinimumSize(new Dimension(100, 40));
+        
+        stopButton.setPreferredSize(new Dimension(100, 40));
+        stopButton.setMinimumSize(new Dimension(100, 40));
+        stopButton.setEnabled(false);
+        
+        JButton resetButton = UIUtils.createStyledButton("重置");
+        resetButton.setPreferredSize(new Dimension(100, 40));
+        resetButton.setMinimumSize(new Dimension(100, 40));
+        resetButton.addActionListener(e -> {
+            apiUrlField.setText("");
+            downloadCountField.setText("");
+            duplicateThresholdGroup.clearSelection();
+            duplicateThresholdGroup.setSelected(mediumButton.getModel(), true);
+            selectedDuplicateThreshold = 50;
+            downloadPathField.setText("Imget_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+        });
+        disableButtons.add(resetButton);
+        
+        stopButton.setEnabled(false);
+        stopButton.addActionListener(e -> ImageDownloader.setTerminating(true));
+        
+        buttonPanel.add(downloadButton);
+        buttonPanel.add(resetButton);
+        buttonPanel.add(stopButton);
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 1;
@@ -450,11 +510,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(20, 0, 20, 0);
         
-        downloadButton.setPreferredSize(new Dimension(200, 40));
-        downloadButton.setMinimumSize(new Dimension(200, 40));
-        downloadButton.setMaximumSize(new Dimension(200, 40));
-        
-        panel.add(downloadButton, gbc);
+        panel.add(buttonPanel, gbc);
     }
 
     private JPanel createProgressPanel() {
@@ -521,7 +577,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         panel.add(retryLabel);
 
         JButton aboutButton = UIUtils.createStyledButton("关于");
-        aboutButton.setPreferredSize(new Dimension(30, 30));
+        aboutButton.setPreferredSize(new Dimension(60, 30));
         aboutButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         aboutButton.addActionListener(e -> showAboutDialog());
         panel.add(aboutButton);
@@ -551,7 +607,8 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                 return;
             }
             
-            downloadButton.setEnabled(!ImageDownloader.isDownloading());
+            // 更新按钮状态
+            updateButtonsState(true);
             downloadButton.setText(ImageDownloader.isRetrying() ? "立即重试" : "下载");
             
             String apiUrl = apiUrlField.getText();
@@ -638,6 +695,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
             );
         }
         fileChooser.setFileSelectionMode(directoriesOnly ? JFileChooser.DIRECTORIES_ONLY : JFileChooser.FILES_ONLY);
+        fileChooser.resetChoosableFileFilters();
         if (!directoriesOnly) {
             fileChooser.setDialogTitle("选择JSON文件");
             fileChooser.setFileFilter(new FileNameExtensionFilter("JSON文件", "json"));
