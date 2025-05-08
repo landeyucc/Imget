@@ -55,11 +55,9 @@ public class MainFrame extends JFrame {
         UIManager.put("Button.borderWidth", 2);
         UIManager.put("TitlePane.unifiedBackground", true);
         
-        SwingUtilities.invokeLater(() -> {
-            initializeFrame();
-            createUI();
-            setVisible(true);
-        });
+        // 初始化窗口和UI
+        initializeFrame();
+        createUI();
     }
 
     private void initializeFrame() {
@@ -673,7 +671,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         });
 
         dialog.add(editorPane, BorderLayout.CENTER);
-        dialog.setSize(300, 200);
+        dialog.setSize(310, 200);
         dialog.setLocationRelativeTo(this);
         dialog.setResizable(false);
         dialog.setVisible(true);
