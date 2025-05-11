@@ -26,12 +26,9 @@ public class MainFrame extends JFrame {
     public static MainFrame getInstance() {
         return instance;
     }
-    private JProgressBar progressBar1;
-    private JProgressBar progressBar2;
-    private JLabel downloadCounterLabel1;
-    private JLabel downloadCounterLabel2;
-    private JLabel currentProgressLabel1;
-    private JLabel currentProgressLabel2;
+    private JProgressBar totalProgressBar;
+    private JLabel totalDownloadCounterLabel;
+    private JLabel totalProgressLabel;
     private JLabel retryLabel;
     private JTextField apiUrlField;
     private JTextField downloadCountField;
@@ -39,6 +36,11 @@ public class MainFrame extends JFrame {
     private JButton downloadButton;
     private ButtonGroup duplicateThresholdGroup;
     private JRadioButton mediumButton;
+    private ButtonGroup threadModeGroup;
+    private JRadioButton normalModeButton;
+    private JRadioButton fastModeButton;
+    private JRadioButton extremeModeButton;
+    private JTextField requestDelayField;
     private int selectedDuplicateThreshold = 50; // 默认中等级别
 
     public MainFrame() {
@@ -139,16 +141,96 @@ public class MainFrame extends JFrame {
         progressGbc.insets = new Insets(0, 20, 20, 20);
         backgroundPanel.add(progressPanel, progressGbc);
 
-        // 创建关于按钮面板
+        // 创建关于按钮和最大化线程复选框面板
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 10));
+        topPanel.setOpaque(false);
+        
+        // 创建线程模式和请求延迟面板
+        JPanel threadModePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        threadModePanel.setOpaque(false);
+        threadModePanel.setAlignmentY(Component.CENTER_ALIGNMENT);
+        
+        // 添加请求延迟输入框
+        JLabel delayLabel = UIUtils.createStyledLabel("请求延迟(ms)：");
+        delayLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        threadModePanel.add(delayLabel);
+        
+        requestDelayField = UIUtils.createStyledTextField(60, 25);
+        requestDelayField.setText("100");
+        requestDelayField.setToolTipText("每个线程在上一次执行任务结束时等待指定的延迟后再进行下一次下载");
+        requestDelayField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                JTextField field = (JTextField) input;
+                try {
+                    int value = Integer.parseInt(field.getText());
+                    if (value < 0) {
+                        JOptionPane.showMessageDialog(MainFrame.this, "请求延迟不能为负数", "请求延迟数据错误", JOptionPane.ERROR_MESSAGE);
+                        return false;
+                    }
+                    return true;
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(MainFrame.this, "请求延迟必须是有效的数值", "请求延迟数据错误", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+            }
+        });
+        threadModePanel.add(requestDelayField);
+        
+        // 添加下载模式标签
+        JLabel threadModeLabel = UIUtils.createStyledLabel("下载模式：");
+        threadModeLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        threadModePanel.add(threadModeLabel);
+        
+        // 创建线程模式单选按钮组
+        threadModeGroup = new ButtonGroup();
+        
+        // 普通模式（2线程）
+        normalModeButton = new JRadioButton("默认模式");
+        normalModeButton.setOpaque(false);
+        normalModeButton.setForeground(Constants.TEXT_COLOR());
+        normalModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        normalModeButton.setSelected(true);
+        normalModeButton.setToolTipText("使用2个线程进行下载，适合网络状况较差或源服务器限制请求次数严格的情况");
+        normalModeButton.addActionListener(e -> ImageDownloader.setThreadMode(0));
+        threadModeGroup.add(normalModeButton);
+        threadModePanel.add(normalModeButton);
+        
+        // 普通加速模式（16线程）
+        fastModeButton = new JRadioButton("高速模式");
+        fastModeButton.setOpaque(false);
+        fastModeButton.setForeground(Constants.TEXT_COLOR());
+        fastModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        fastModeButton.setToolTipText("使用16个线程进行下载，适合网络状况良好且源服务器限制请求次数较宽松的情况");
+        fastModeButton.addActionListener(e -> ImageDownloader.setThreadMode(1));
+        threadModeGroup.add(fastModeButton);
+        threadModePanel.add(fastModeButton);
+        
+        // 极限模式（64线程）
+        extremeModeButton = new JRadioButton("极限模式");
+        extremeModeButton.setOpaque(false);
+        extremeModeButton.setForeground(Constants.TEXT_COLOR());
+        extremeModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        extremeModeButton.setToolTipText("使用64个线程进行下载，适合网络状况极佳且源服务器限制请求次数无限制的情况，谨慎使用");
+        extremeModeButton.addActionListener(e -> ImageDownloader.setThreadMode(2));
+        threadModeGroup.add(extremeModeButton);
+        threadModePanel.add(extremeModeButton);
+        
+        topPanel.add(threadModePanel);
+        
+        // 添加关于按钮
         JPanel aboutPanel = createAboutPanel();
-        GridBagConstraints aboutGbc = new GridBagConstraints();
-        aboutGbc.gridx = 0;
-        aboutGbc.gridy = -1; // 放在最顶部
-        aboutGbc.weightx = 0.0;
-        aboutGbc.weighty = 0.0;
-        aboutGbc.anchor = GridBagConstraints.NORTHEAST;
-        aboutGbc.insets = new Insets(5, 0, 10, 10);
-        backgroundPanel.add(aboutPanel, aboutGbc);
+        aboutPanel.setAlignmentY(Component.CENTER_ALIGNMENT);
+        topPanel.add(aboutPanel);
+        
+        GridBagConstraints topGbc = new GridBagConstraints();
+        topGbc.gridx = 0;
+        topGbc.gridy = -1; // 放在最顶部
+        topGbc.weightx = 0.0;
+        topGbc.weighty = 0.0;
+        topGbc.anchor = GridBagConstraints.NORTHEAST;
+        topGbc.insets = new Insets(5, 0, 10, 10);
+        backgroundPanel.add(topPanel, topGbc);
     }
 
     private JPanel createMainPanel() {
@@ -191,12 +273,24 @@ public class MainFrame extends JFrame {
 
     private void addInputFields(JPanel panel) {
         // API URL输入
-        JLabel apiUrlLabel = UIUtils.createStyledLabel("请输入随机图片 API 链接 (或者加载下载记录JSON内的元数据):");
+        JLabel apiUrlLabel = UIUtils.createStyledLabel("请输入随机图片API链接 (或者加载下载记录JSON内的元数据):");
         
         // 创建API URL输入面板
         JPanel apiUrlPanel = new JPanel(new BorderLayout(5, 0));
         apiUrlPanel.setBackground(Constants.BACKGROUND_COLOR());
         apiUrlField = UIUtils.createStyledTextField(520, 35);
+        apiUrlField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                JTextField field = (JTextField) input;
+                String url = field.getText();
+                if (!url.isEmpty() && !url.startsWith("http://") && !url.startsWith("https://")) {
+                    JOptionPane.showMessageDialog(MainFrame.this, "URL必须以http://或https://开头", "API链接数据错误", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+                return true;
+            }
+        });
         apiUrlPanel.add(apiUrlField, BorderLayout.CENTER);
         
         // 添加JSON文件选择按钮
@@ -352,6 +446,23 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         // 下载次数
         JLabel downloadCountLabel = UIUtils.createStyledLabel("下载次数:");
         downloadCountField = UIUtils.createStyledTextField(80, 35);
+        downloadCountField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                JTextField field = (JTextField) input;
+                try {
+                    int value = Integer.parseInt(field.getText());
+                    if (value < 0) {
+                        JOptionPane.showMessageDialog(MainFrame.this, "下载次数不能为负数", "下载次数数据错误", JOptionPane.ERROR_MESSAGE);
+                        return false;
+                    }
+                    return true;
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(MainFrame.this, "下载次数必须是有效的数值", "下载次数数据错误", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+            }
+        });
         
         // 下载路径
         JLabel downloadPathLabel = UIUtils.createStyledLabel("下载路径:");
@@ -424,6 +535,12 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         mediumButton.setOpaque(false);
         highButton.setOpaque(false);
         
+        // 添加工具提示
+        lowButton.setToolTipText("如果下载的文件连续20次md5校验重复则立即停止下载");
+        mediumButton.setToolTipText("如果下载的文件连续50次md5校验重复则立即停止下载");
+        highButton.setToolTipText("如果下载的文件连续100次md5校验重复则立即停止下载");
+        
+        
         // 添加事件监听
         lowButton.addActionListener(e -> selectedDuplicateThreshold = 20);
         mediumButton.addActionListener(e -> selectedDuplicateThreshold = 50);
@@ -490,6 +607,10 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
             duplicateThresholdGroup.setSelected(mediumButton.getModel(), true);
             selectedDuplicateThreshold = 50;
             downloadPathField.setText("Imget_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+            requestDelayField.setText("100");
+            threadModeGroup.clearSelection();
+            normalModeButton.setSelected(true);
+            ImageDownloader.setThreadMode(0);
         });
         disableButtons.add(resetButton);
         
@@ -516,49 +637,30 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        progressBar1 = UIUtils.createStyledProgressBar();
-        progressBar1.setPreferredSize(new Dimension(progressBar1.getPreferredSize().width, 40));
-        progressBar2 = UIUtils.createStyledProgressBar();
-        progressBar2.setPreferredSize(new Dimension(progressBar2.getPreferredSize().width, 40));
-        downloadCounterLabel1 = UIUtils.createStyledLabel("线程1下载: 0/0");
-        downloadCounterLabel2 = UIUtils.createStyledLabel("线程2下载: 0/0");
-        currentProgressLabel1 = UIUtils.createStyledLabel("线程1进度: 0%");
-        currentProgressLabel2 = UIUtils.createStyledLabel("线程2进度: 0%");
+        totalProgressBar = UIUtils.createStyledProgressBar();
+        totalProgressBar.setPreferredSize(new Dimension(totalProgressBar.getPreferredSize().width, 40));
+        totalDownloadCounterLabel = UIUtils.createStyledLabel("总下载进度: 0/0");
+        totalProgressLabel = UIUtils.createStyledLabel("总体进度: 0%");
 
         GridBagConstraints gbc = new GridBagConstraints();
         
-        // 线程1的组件
+        // 添加总进度组件
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         gbc.insets = new Insets(0, 0, 2, 0);
         gbc.anchor = GridBagConstraints.WEST;
-        panel.add(downloadCounterLabel1, gbc);
+        panel.add(totalDownloadCounterLabel, gbc);
 
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 5, 0);
-        panel.add(currentProgressLabel1, gbc);
+        panel.add(totalProgressLabel, gbc);
 
         gbc.gridy = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 10, 0);
-        panel.add(progressBar1, gbc);
-
-        // 线程2的组件
-        gbc.gridy = 3;
-        gbc.insets = new Insets(0, 0, 2, 0);
-        panel.add(downloadCounterLabel2, gbc);
-
-        gbc.gridy = 4;
-        gbc.insets = new Insets(0, 0, 5, 0);
-        panel.add(currentProgressLabel2, gbc);
-
-        gbc.gridy = 5;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 0, 0);
-        panel.add(progressBar2, gbc);
+        panel.add(totalProgressBar, gbc);
 
         return panel;
     }
@@ -623,16 +725,13 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                 apiUrl,
                 count,
                 downloadPath,
-                progressBar1,
-                progressBar2,
-                downloadCounterLabel1,
-                downloadCounterLabel2,
-                currentProgressLabel1,
-                currentProgressLabel2,
+                totalProgressBar,
+                totalDownloadCounterLabel,
+                totalProgressLabel,
                 selectedDuplicateThreshold
             );
         } catch (NumberFormatException e) {
-            UIUtils.showErrorMessage("下载次数必须是一个有效的数字");
+            UIUtils.showErrorMessage("下载次数必须是一个有效的数值");
         } catch (Exception e) {
             UIUtils.showErrorMessage("启动下载失败：" + e.getMessage());
         }

@@ -31,8 +31,7 @@ public class SplashScreen extends JWindow {
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setColor(Color.WHITE);
                 
-                // 绘制圆角矩形背景
-                int arc = 20;
+                int arc = 0;
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
                 super.paintComponent(g);
             }
@@ -55,7 +54,7 @@ public class SplashScreen extends JWindow {
         nameLabel.setForeground(Color.BLACK);
         
         // 创建版本号标签
-        versionLabel = new JLabel("v1.6e by Lande");
+        versionLabel = new JLabel("v1.6e by Github@landeyucc");
         versionLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         versionLabel.setForeground(Color.BLACK);
     }
