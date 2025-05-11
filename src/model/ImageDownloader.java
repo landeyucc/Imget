@@ -24,7 +24,7 @@ public class ImageDownloader {
     private static JLabel retryLabel = new JLabel("重试中...");
     private static String detectedImageFormat = null; // 存储检测到的图片格式
     private static volatile Set<String> md5Set = new HashSet<>();
-    private static int threadMode = 0; // 0: 普通模式(2线程), 1: 普通加速(16线程), 2: 极限模式(64线程)
+    private static int threadMode = 0; // 0: 默认模式(2线程), 1: 高速模式(16线程), 2: 极限模式(64线程)
     
     public static void setThreadMode(int mode) {
         threadMode = mode;
@@ -80,13 +80,13 @@ public class ImageDownloader {
         // 计算线程数量和每个线程需要下载的图片数量
         final int threadCount;
         switch (threadMode) {
-            case 1: // 普通加速模式
+            case 1: // 高速模式
                 threadCount = 16;
                 break;
             case 2: // 极限模式
                 threadCount = 64;
                 break;
-            default: // 普通模式
+            default: // 默认模式
                 threadCount = 2;
                 break;
         }
@@ -168,13 +168,13 @@ public class ImageDownloader {
         int fileIndex = 1;
         int baseThreadCount;
         switch (threadMode) {
-            case 1: // 普通加速模式
+            case 1: // 高速模式
                 baseThreadCount = 16;
                 break;
             case 2: // 极限模式
                 baseThreadCount = 64;
                 break;
-            default: // 普通模式
+            default: // 默认模式
                 baseThreadCount = 2;
                 break;
         }
@@ -306,7 +306,7 @@ public class ImageDownloader {
                         imageUrl = json.getString("image_url"); 
                     } else if (json.has("acgurl")) {
                         imageUrl = json.getString("acgurl"); 
-                    }
+                    } 
 
                     if (imageUrl != null) {
                         // 处理URL中的转义字符

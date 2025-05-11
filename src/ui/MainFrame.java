@@ -185,7 +185,7 @@ public class MainFrame extends JFrame {
         // 创建线程模式单选按钮组
         threadModeGroup = new ButtonGroup();
         
-        // 普通模式（2线程）
+        // 默认模式（2线程）
         normalModeButton = new JRadioButton("默认模式");
         normalModeButton.setOpaque(false);
         normalModeButton.setForeground(Constants.TEXT_COLOR());
@@ -196,7 +196,7 @@ public class MainFrame extends JFrame {
         threadModeGroup.add(normalModeButton);
         threadModePanel.add(normalModeButton);
         
-        // 普通加速模式（16线程）
+        // 高速模式（16线程）
         fastModeButton = new JRadioButton("高速模式");
         fastModeButton.setOpaque(false);
         fastModeButton.setForeground(Constants.TEXT_COLOR());
