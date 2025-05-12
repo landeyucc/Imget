@@ -25,6 +25,8 @@ public class ImageDownloader {
     private static String detectedImageFormat = null; // 存储检测到的图片格式
     private static volatile Set<String> md5Set = new HashSet<>();
     private static int threadMode = 0; // 0: 默认模式(2线程), 1: 高速模式(16线程), 2: 极限模式(64线程)
+    private static String browserFingerprint = null;
+    private static String userAgent = null;
     
     public static void setThreadMode(int mode) {
         threadMode = mode;
@@ -44,6 +46,23 @@ public class ImageDownloader {
     
     public static boolean isRetrying() {
         return isRetrying;
+    }
+    
+    private static void generateBrowserIdentity() {
+        // 生成随机的Chrome版本号（100-120之间）
+        int chromeVersion = 100 + (int)(Math.random() * 20);
+        int chromeMinorVersion = (int)(Math.random() * 99);
+        int chromeBuild = (int)(Math.random() * 9999);
+        
+        // 生成随机的浏览器指纹
+        browserFingerprint = String.format("\"%s\", \"Chromium\";v=\"%d\", \"Google Chrome\";v=\"%d\"",
+            "Not_A Brand;v=99", chromeVersion, chromeVersion);
+        
+        // 生成随机的User-Agent
+        userAgent = String.format("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%d.%d.%d.0 Safari/537.36",
+            chromeVersion, chromeMinorVersion, chromeBuild);
+        
+        logEvent("browser_identity_generated", "fingerprint", browserFingerprint, "user_agent", userAgent);
     }
     
     private static void logEvent(String event, Object... params) {
@@ -67,6 +86,8 @@ public class ImageDownloader {
             JLabel totalProgressLabel, int duplicateThreshold) {
         isDownloading = true;
         isRetrying = false;
+        // 在开始下载前生成浏览器指纹和UA
+        generateBrowserIdentity();
         logEvent("start_download", "total_count", downloadCount, "download_path", downloadPath);
 
         // 创建共享的imageMap和同步锁
@@ -137,6 +158,8 @@ public class ImageDownloader {
                         maxInfo.put("complete", isTerminating ? "false" : "true");
                         maxInfo.put("apilink", apiUrl);
                         maxInfo.put("maxnumber", String.valueOf(downloadCount));
+                        maxInfo.put("browser_fingerprint", browserFingerprint);
+                        maxInfo.put("user_agent", userAgent);
                         Files.write(Paths.get(downloadPath, "a_max_in.json"), maxInfo.toString(2).getBytes());
                         logEvent("max_info_created", "file", "a_max_in.json");
                     } catch (Exception e) {
@@ -347,6 +370,19 @@ public class ImageDownloader {
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(10000); // 设置连接超时10秒
                 connection.setReadTimeout(10000);    // 设置读取超时10秒
+                
+                // 设置浏览器指纹和UA
+                if (browserFingerprint == null || userAgent == null) {
+                    generateBrowserIdentity();
+                }
+                connection.setRequestProperty("User-Agent", userAgent);
+                connection.setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+                connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
+                connection.setRequestProperty("Sec-Ch-Ua", browserFingerprint);
+                connection.setRequestProperty("Sec-Ch-Ua-Platform", "\"Windows\"");
+                connection.setRequestProperty("Sec-Fetch-Dest", "image");
+                connection.setRequestProperty("Sec-Fetch-Mode", "no-cors");
+                connection.setRequestProperty("Sec-Fetch-Site", "cross-site");
 
                 // 检测图片格式
                 if (detectedImageFormat == null) {

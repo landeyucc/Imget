@@ -11,3 +11,6 @@ log.txt
 *.zip
 /apache-maven-3.9.6
 /target
+*.exe
+java2exe.xml
+launch4j.log
