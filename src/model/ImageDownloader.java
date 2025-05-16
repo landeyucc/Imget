@@ -488,7 +488,7 @@ public class ImageDownloader {
                     content.append(line);
                 }
                 
-                // Parse existing JSON
+                // 解析现有的JSON
                 if (content.length() > 0) {
                     org.json.JSONArray array = new org.json.JSONArray(content.toString());
                     for (int i = 0; i < array.length(); i++) {
@@ -509,7 +509,7 @@ public class ImageDownloader {
             }
         }
         
-        // Update records with new information
+        // 用新的信息更新记录
         for (Map.Entry<String, String> entry : imageMap.entrySet()) {
             String imagePath = entry.getKey();
             String md5 = entry.getValue();
@@ -525,7 +525,7 @@ public class ImageDownloader {
             }
         }
         
-        // Write updated records to file
+        // 将更新的记录写入文件
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(jsonFileName))) {
             writer.write("[\n");
             boolean first = true;
