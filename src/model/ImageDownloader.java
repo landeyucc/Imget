@@ -479,7 +479,7 @@ public class ImageDownloader {
         Map<String, JsonRecord> existingRecords = new LinkedHashMap<>();
         File jsonFile = new File(jsonFileName);
         
-        // Read existing records if file exists
+        // 如果文件存在，则读取现有记录
         if (jsonFile.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(jsonFileName))) {
                 StringBuilder content = new StringBuilder();
