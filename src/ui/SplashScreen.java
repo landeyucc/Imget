@@ -1,11 +1,24 @@
 package ui;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JWindow;
+import javax.swing.Timer;
+
 import utils.Constants;
 import utils.UIUtils;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 
 public class SplashScreen extends JWindow {
     private Timer displayTimer;
@@ -54,7 +67,7 @@ public class SplashScreen extends JWindow {
         nameLabel.setForeground(Color.BLACK);
         
         // 创建版本号标签
-        versionLabel = new JLabel("v1.6e by Github@landeyucc");
+        versionLabel = new JLabel("v1.7a by Github@landeyucc");
         versionLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         versionLabel.setForeground(Color.BLACK);
     }

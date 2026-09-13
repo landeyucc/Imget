@@ -1,24 +1,56 @@
 package ui;
 
-import utils.Constants;
-import utils.UIUtils;
-import model.ImageDownloader;
-import com.formdev.flatlaf.FlatLightLaf;
-import com.formdev.flatlaf.FlatClientProperties;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.io.File;
-import java.util.Enumeration;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import org.json.JSONObject;
 import java.nio.file.Files;
-import java.util.Set;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Set;
+
+import javax.swing.AbstractButton;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.InputVerifier;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import org.json.JSONObject;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.FlatLightLaf;
+
+import model.ImageDownloader;
+import utils.Constants;
+import utils.UIUtils;
 
 public class MainFrame extends JFrame {
     private static MainFrame instance;
@@ -36,12 +68,8 @@ public class MainFrame extends JFrame {
     private JButton downloadButton;
     private ButtonGroup duplicateThresholdGroup;
     private JRadioButton mediumButton;
-    private ButtonGroup threadModeGroup;
-    private JRadioButton normalModeButton;
-    private JRadioButton fastModeButton;
-    private JRadioButton extremeModeButton;
-    private JTextField requestDelayField;
     private int selectedDuplicateThreshold = 50; // 默认中等级别
+    private boolean isVideoMode = false; // 默认图片模式
 
     public MainFrame() {
         instance = this;
@@ -60,6 +88,9 @@ public class MainFrame extends JFrame {
         // 初始化窗口和UI
         initializeFrame();
         createUI();
+        
+        // 加载保存的设置
+        loadSavedSettings();
     }
 
     private void initializeFrame() {
@@ -88,7 +119,8 @@ public class MainFrame extends JFrame {
                                 try {
                                     Thread.sleep(1000);
                                 } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                                    Thread.currentThread().interrupt();
+                                    break;
                                 }
                             }
                             // 下载完成后关闭窗口
@@ -141,82 +173,9 @@ public class MainFrame extends JFrame {
         progressGbc.insets = new Insets(0, 20, 20, 20);
         backgroundPanel.add(progressPanel, progressGbc);
 
-        // 创建关于按钮和最大化线程复选框面板
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 10));
+        // 创建关于按钮和选项按钮面板
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 10));
         topPanel.setOpaque(false);
-        
-        // 创建线程模式和请求延迟面板
-        JPanel threadModePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        threadModePanel.setOpaque(false);
-        threadModePanel.setAlignmentY(Component.CENTER_ALIGNMENT);
-        
-        // 添加请求延迟输入框
-        JLabel delayLabel = UIUtils.createStyledLabel("请求延迟(ms)：");
-        delayLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        threadModePanel.add(delayLabel);
-        
-        requestDelayField = UIUtils.createStyledTextField(60, 25);
-        requestDelayField.setText("100");
-        requestDelayField.setToolTipText("每个线程在上一次执行任务结束时等待指定的延迟后再进行下一次下载");
-        requestDelayField.setInputVerifier(new InputVerifier() {
-            @Override
-            public boolean verify(JComponent input) {
-                JTextField field = (JTextField) input;
-                try {
-                    int value = Integer.parseInt(field.getText());
-                    if (value < 0) {
-                        JOptionPane.showMessageDialog(MainFrame.this, "请求延迟不能为负数", "请求延迟数据错误", JOptionPane.ERROR_MESSAGE);
-                        return false;
-                    }
-                    return true;
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(MainFrame.this, "请求延迟必须是有效的数值", "请求延迟数据错误", JOptionPane.ERROR_MESSAGE);
-                    return false;
-                }
-            }
-        });
-        threadModePanel.add(requestDelayField);
-        
-        // 添加下载模式标签
-        JLabel threadModeLabel = UIUtils.createStyledLabel("下载模式：");
-        threadModeLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        threadModePanel.add(threadModeLabel);
-        
-        // 创建线程模式单选按钮组
-        threadModeGroup = new ButtonGroup();
-        
-        // 默认模式（2线程）
-        normalModeButton = new JRadioButton("默认模式");
-        normalModeButton.setOpaque(false);
-        normalModeButton.setForeground(Constants.TEXT_COLOR());
-        normalModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        normalModeButton.setSelected(true);
-        normalModeButton.setToolTipText("使用2个线程进行下载，适合网络状况较差或源服务器限制请求次数严格的情况");
-        normalModeButton.addActionListener(e -> ImageDownloader.setThreadMode(0));
-        threadModeGroup.add(normalModeButton);
-        threadModePanel.add(normalModeButton);
-        
-        // 高速模式（16线程）
-        fastModeButton = new JRadioButton("高速模式");
-        fastModeButton.setOpaque(false);
-        fastModeButton.setForeground(Constants.TEXT_COLOR());
-        fastModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        fastModeButton.setToolTipText("使用16个线程进行下载，适合网络状况良好且源服务器限制请求次数较宽松的情况");
-        fastModeButton.addActionListener(e -> ImageDownloader.setThreadMode(1));
-        threadModeGroup.add(fastModeButton);
-        threadModePanel.add(fastModeButton);
-        
-        // 极限模式（64线程）
-        extremeModeButton = new JRadioButton("极限模式");
-        extremeModeButton.setOpaque(false);
-        extremeModeButton.setForeground(Constants.TEXT_COLOR());
-        extremeModeButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        extremeModeButton.setToolTipText("使用64个线程进行下载，适合网络状况极佳且源服务器限制请求次数无限制的情况，谨慎使用");
-        extremeModeButton.addActionListener(e -> ImageDownloader.setThreadMode(2));
-        threadModeGroup.add(extremeModeButton);
-        threadModePanel.add(extremeModeButton);
-        
-        topPanel.add(threadModePanel);
         
         // 添加关于按钮
         JPanel aboutPanel = createAboutPanel();
@@ -314,15 +273,22 @@ public class MainFrame extends JFrame {
                         throw new Exception("JSON读取格式失败，必须以'{'开头并以'}'结尾，或以'['开头并以']'结尾");
                     
                     // 尝试解析JSON，无论是对象还是数组格式
-                    Object jsonObj = new org.json.JSONTokener(fileContent).nextValue();
+                    org.json.JSONTokener tokener = new org.json.JSONTokener(fileContent);
+                    Object jsonObj = tokener.nextValue();
                     String sourceUrl = "";
                     Set<String> md5Set = new HashSet<>();
+                    String detectedType = "image";
                     
-                    if (jsonObj instanceof JSONObject) {
-                        JSONObject json = (JSONObject) jsonObj;
+                    if (jsonObj instanceof JSONObject json) {
                         if (!json.has("source_url"))
                             throw new Exception("JSON中缺少必需的'source_url'字段");
                         sourceUrl = json.getString("source_url");
+                        
+                        // 检查是否有type字段
+                        if (json.has("type")) {
+                            detectedType = json.getString("type");
+                            System.out.println("检测到type字段: " + detectedType);
+                        }
                         
                         // 只收集status为saved的md5值
                         for (String key : json.keySet()) {
@@ -350,19 +316,24 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                         JSONObject cacheJson = new JSONObject();
                         cacheJson.put("source_url", sourceUrl);
                         cacheJson.put("md5", md5Set);
+                        cacheJson.put("type", detectedType);
                         Files.write(cacheFile.toPath(), cacheJson.toString(4).getBytes("UTF-8"));
                         System.out.println("已将源JSON文件中的" + md5Set.size() + "个md5值写入缓存文件：" + cacheFile.getPath());
                         
                         // 将md5集合存储在内存中
                         System.out.println("成功写入" + md5Set.size() + "个有效MD5到缓存文件");
-                    } else if (jsonObj instanceof org.json.JSONArray) {
-                        org.json.JSONArray jsonArray = (org.json.JSONArray) jsonObj;
+                    } else if (jsonObj instanceof org.json.JSONArray jsonArray) {
                         if (jsonArray.length() > 0) {
-                            // 只收集status为saved的md5值
+                            // 只收集status为saved的md5值，并检测type字段
                             for (int i = 0; i < jsonArray.length(); i++) {
                                 JSONObject item = jsonArray.getJSONObject(i);
                                 if (item.has("md5") && item.has("status") && "saved".equals(item.getString("status"))) {
                                     md5Set.add(item.getString("md5"));
+                                }
+                                // 检测type字段，以第一个有效记录为准
+                                if (i == 0 && item.has("type")) {
+                                    detectedType = item.getString("type");
+                                    System.out.println("检测到type字段: " + detectedType);
                                 }
                             }
                             
@@ -379,6 +350,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                             }
                             JSONObject cacheJson = new JSONObject();
                             cacheJson.put("md5", md5Set);
+                            cacheJson.put("type", detectedType);
                             Files.write(cacheFile.toPath(), cacheJson.toString(4).getBytes("UTF-8"));
                             System.out.println("已将源JSON文件中的" + md5Set.size() + "个md5值写入缓存文件：" + cacheFile.getPath());
                             
@@ -396,7 +368,11 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                         throw new Exception("JSON格式无效");
                     }
                     
+                    // 根据检测到的type字段切换模式
+                    isVideoMode = "video".equalsIgnoreCase(detectedType);
+                    ConfigManager.getInstance().setInt("mode", isVideoMode ? 1 : 0);
                     apiUrlField.setText(sourceUrl);
+                    System.out.println("模式已切换为: " + (isVideoMode ? "视频模式" : "图片模式"));
                 } catch (Exception ex) {
                     UIUtils.showErrorMessage("读取JSON文件失败：" + ex.getMessage());
                 }
@@ -489,7 +465,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         pathPanel.setMinimumSize(new Dimension(500, 35));
         pathPanel.setPreferredSize(new Dimension(500, 35));
 
-        // 布局组件
+        // 布局组件 - 下载次数
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0;
@@ -566,7 +542,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
     }
 
     // 存储需要在下载时禁用的按钮
-    private List<JButton> disableButtons = new ArrayList<>();
+    private final List<JButton> disableButtons = new ArrayList<>();
     private JButton stopButton;
 
     public void updateButtonsState(boolean isDownloading) {
@@ -607,10 +583,6 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
             duplicateThresholdGroup.setSelected(mediumButton.getModel(), true);
             selectedDuplicateThreshold = 50;
             downloadPathField.setText("Imget_" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
-            requestDelayField.setText("100");
-            threadModeGroup.clearSelection();
-            normalModeButton.setSelected(true);
-            ImageDownloader.setThreadMode(0);
         });
         disableButtons.add(resetButton);
         
@@ -676,6 +648,14 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         retryLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         panel.add(retryLabel);
 
+        // 添加选项按钮
+        JButton optionsButton = UIUtils.createStyledButton("选项");
+        optionsButton.setPreferredSize(new Dimension(60, 30));
+        optionsButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        optionsButton.addActionListener(e -> showSettingsDialog());
+        panel.add(optionsButton);
+
+        // 添加关于按钮
         JButton aboutButton = UIUtils.createStyledButton("关于");
         aboutButton.setPreferredSize(new Dimension(60, 30));
         aboutButton.setFont(new Font("微软雅黑", Font.PLAIN, 12));
@@ -728,7 +708,8 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
                 totalProgressBar,
                 totalDownloadCounterLabel,
                 totalProgressLabel,
-                selectedDuplicateThreshold
+                selectedDuplicateThreshold,
+                isVideoMode
             );
         } catch (NumberFormatException e) {
             UIUtils.showErrorMessage("下载次数必须是一个有效的数值");
@@ -746,6 +727,7 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
         editorPane.setContentType("text/html");
         editorPane.setEditable(false);
         editorPane.setBackground(Constants.BACKGROUND_COLOR());
+        editorPane.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         
         String htmlContent = String.format(
             "<html><body style='width: 230px; padding: 0px; margin: 0px;'>" +
@@ -801,5 +783,30 @@ System.out.println("生成MD5缓存文件路径: " + cacheFile.getAbsolutePath()
             fileChooser.setFileFilter(null);
         }
         return fileChooser;
+    }
+    
+    private void showSettingsDialog() {
+        SettingsDialog.getInstance().showDialog();
+    }
+    
+    public void applySettings() {
+        ConfigManager config = ConfigManager.getInstance();
+        
+        // 应用模式设置
+        int mode = config.getInt("mode", 0);
+        isVideoMode = (mode == 1);
+        
+        // 应用线程模式设置
+        int threadMode = config.getInt("threadMode", 0);
+        ImageDownloader.setThreadMode(threadMode);
+        
+        // 应用请求延迟设置
+        int delay = config.getInt("requestDelay", 100);
+        ImageDownloader.setRequestDelay(delay);
+    }
+    
+    public void loadSavedSettings() {
+        ConfigManager config = ConfigManager.getInstance();
+        applySettings();
     }
 }

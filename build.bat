@@ -28,4 +28,3 @@ REM 清理临时文件
 rmdir /S /Q temp
 
 echo 编译完成，生成Imget.jar
-pause

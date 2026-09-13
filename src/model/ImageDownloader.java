@@ -1,35 +1,57 @@
 package model;
 
-import javax.swing.*;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
-import org.json.JSONObject;
+
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+
 import org.json.JSONException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import org.json.JSONObject;
+
 import ui.MainFrame;
 
 public class ImageDownloader {
     private static boolean isDownloading = false;
     private static boolean isRetrying = false;
     private static boolean isTerminating = false;
-    private static JLabel retryLabel = new JLabel("重试中...");
-    private static String detectedImageFormat = null; // 存储检测到的图片格式
+    private static final JLabel retryLabel = new JLabel("重试中...");
     private static volatile Set<String> md5Set = new HashSet<>();
     private static int threadMode = 0; // 0: 默认模式(2线程), 1: 高速模式(16线程), 2: 极限模式(64线程)
+    private static int requestDelay = 100; // 请求延迟（毫秒）
     private static String browserFingerprint = null;
     private static String userAgent = null;
+    private static boolean isVideoMode = false; // 当前是否为视频模式
     
     public static void setThreadMode(int mode) {
         threadMode = mode;
+    }
+    
+    public static void setRequestDelay(int delay) {
+        requestDelay = delay;
     }
     
     public static void setTerminating(boolean terminating) {
@@ -67,12 +89,14 @@ public class ImageDownloader {
     
     private static void logEvent(String event, Object... params) {
         StringBuilder logJson = new StringBuilder();
-        logJson.append("{\"event\":\"" + event + "\",");
+        logJson.append("{\"event\":\"").append(event).append("\",");
         for (int i = 0; i < params.length; i += 2) {
-            if (i > 0) logJson.append(",");
-            logJson.append("\"" + params[i] + "\":");
+            if (i > 0) {
+                logJson.append(",");
+            }
+            logJson.append("\"").append(params[i]).append("\":");
             if (params[i + 1] instanceof String) {
-                logJson.append("\"" + params[i + 1] + "\"");
+                logJson.append("\"").append(params[i + 1]).append("\"");
             } else {
                 logJson.append(params[i + 1]);
             }
@@ -83,12 +107,13 @@ public class ImageDownloader {
 
     public static void downloadImages(String apiUrl, int downloadCount, String downloadPath,
             JProgressBar totalProgressBar, JLabel totalDownloadCounterLabel,
-            JLabel totalProgressLabel, int duplicateThreshold) {
+            JLabel totalProgressLabel, int duplicateThreshold, boolean videoMode) {
         isDownloading = true;
         isRetrying = false;
+        isVideoMode = videoMode;
         // 在开始下载前生成浏览器指纹和UA
         generateBrowserIdentity();
-        logEvent("start_download", "total_count", downloadCount, "download_path", downloadPath);
+        logEvent("start_download", "total_count", downloadCount, "download_path", downloadPath, "mode", videoMode ? "video" : "image");
 
         // 创建共享的imageMap和同步锁
         Map<String, String> imageMap = new LinkedHashMap<>();
@@ -99,18 +124,11 @@ public class ImageDownloader {
         }
 
         // 计算线程数量和每个线程需要下载的图片数量
-        final int threadCount;
-        switch (threadMode) {
-            case 1: // 高速模式
-                threadCount = 16;
-                break;
-            case 2: // 极限模式
-                threadCount = 64;
-                break;
-            default: // 默认模式
-                threadCount = 2;
-                break;
-        }
+        final int threadCount = switch (threadMode) {
+            case 1 -> 16;  // 高速模式
+            case 2 -> 64;  // 极限模式
+            default -> 2;  // 默认模式
+        };
         final int imagesPerThread = downloadCount / threadCount;
         final int remainingImages = downloadCount % threadCount;
         
@@ -121,7 +139,6 @@ public class ImageDownloader {
         // 创建并启动下载线程
         Thread[] threads = new Thread[threadCount];
         for (int i = 0; i < threadCount; i++) {
-            final int threadIndex = i;
             final int startIndex = i * imagesPerThread + Math.min(i, remainingImages);
             final int endIndex = startIndex + imagesPerThread + (i < remainingImages ? 1 : 0);
             
@@ -137,47 +154,44 @@ public class ImageDownloader {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                try {
-                    File jsonFile = new File("a_image_info.json");
-                    if (jsonFile.exists()) {
-                        // 读取已有的 JSON 文件
-                    }
-
-                    // 等待所有线程完成
-                    try {
-                        for (Thread thread : threads) {
-                            thread.join();
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    // 生成max_info.json，记录总下载数
-                    try {
-                        JSONObject maxInfo = new JSONObject();
-                        maxInfo.put("complete", isTerminating ? "false" : "true");
-                        maxInfo.put("apilink", apiUrl);
-                        maxInfo.put("maxnumber", String.valueOf(downloadCount));
-                        maxInfo.put("browser_fingerprint", browserFingerprint);
-                        maxInfo.put("user_agent", userAgent);
-                        Files.write(Paths.get(downloadPath, "a_max_in.json"), maxInfo.toString(2).getBytes());
-                        logEvent("max_info_created", "file", "a_max_in.json");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    SwingUtilities.invokeLater(() -> {
-                        totalProgressLabel.setText("下载完成");
-                        totalProgressBar.setValue(100);
-                        isDownloading = false;
-                        isRetrying = false;
-                        isTerminating = false;
-                        // 更新按钮状态
-                        MainFrame.getInstance().updateButtonsState(false);
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
+                File jsonFile = new File("a_image_info.json");
+                if (jsonFile.exists()) {
+                    // 读取已有的 JSON 文件
                 }
+
+                // 等待所有线程完成
+                try {
+                    for (Thread thread : threads) {
+                        thread.join();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logEvent("thread_interrupted", "error", e.getMessage());
+                }
+
+                // 生成max_info.json，记录总下载数
+                try {
+                    JSONObject maxInfo = new JSONObject();
+                    maxInfo.put("complete", isTerminating ? "false" : "true");
+                    maxInfo.put("apilink", apiUrl);
+                    maxInfo.put("maxnumber", String.valueOf(downloadCount));
+                    maxInfo.put("browser_fingerprint", browserFingerprint);
+                    maxInfo.put("user_agent", userAgent);
+                    maxInfo.put("type", isVideoMode ? "video" : "image");
+                    Files.write(Paths.get(downloadPath, "a_max_in.json"), maxInfo.toString(2).getBytes());
+                    logEvent("max_info_created", "file", "a_max_in.json");
+                } catch (IOException e) {
+                    logEvent("max_info_write_error", "error", e.getMessage());
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    totalProgressLabel.setText("下载完成");
+                    totalProgressBar.setValue(100);
+                    isDownloading = false;
+                    isRetrying = false;
+                    isTerminating = false;
+                    MainFrame.getInstance().updateButtonsState(false);
+                });
                 return null;
             }
         }.execute();
@@ -188,22 +202,13 @@ public class ImageDownloader {
             JProgressBar totalProgressBar, JLabel totalDownloadCounterLabel, JLabel totalProgressLabel,
             int[] totalDownloaded, Object progressLock, int totalCount, int duplicateThreshold) {
         int consecutiveDuplicates = 0;
-        int fileIndex = 1;
-        int baseThreadCount;
-        switch (threadMode) {
-            case 1: // 高速模式
-                baseThreadCount = 16;
-                break;
-            case 2: // 极限模式
-                baseThreadCount = 64;
-                break;
-            default: // 默认模式
-                baseThreadCount = 2;
-                break;
-        }
+        int baseThreadCount = switch (threadMode) {
+            case 1 -> 16;  // 高速模式
+            case 2 -> 64;  // 极限模式
+            default -> 2;  // 默认模式
+        };
         String threadPrefix = "thread" + (startIndex / (totalCount / baseThreadCount + 1) + 1) + "_";
         
-        boolean isMaxCountReached = false;
         for (int i = startIndex; i < endIndex; i++) {
             final int currentCount = i + 1;
             synchronized (progressLock) {
@@ -217,16 +222,15 @@ public class ImageDownloader {
                 });
             }
 
-            if (currentCount >= endIndex) {
-                isMaxCountReached = true;
-            }
-
-            String extension = detectedImageFormat != null ? "." + detectedImageFormat : ".jpg";
-            String imageName = downloadPath + "/image_" + threadPrefix + currentCount + extension;
+            String extension = isVideoMode ? ".mp4" : ".jpg";
+            String prefix = isVideoMode ? "video" : "image";
+            String imageName = downloadPath + "/" + prefix + "_" + threadPrefix + currentCount + extension;
             logEvent("download_start", "file", imageName, "index", currentCount);
             
             try {
-                Thread.sleep(100); // 添加短暂延迟，避免请求过于频繁
+                if (isTerminating) {
+                    return;
+                }
                 if (downloadImage(apiUrl, imageName, totalProgressBar, totalProgressLabel)) {
                     String md5 = calculateMD5(new File(imageName));
                     synchronized (mapLock) {
@@ -240,12 +244,11 @@ public class ImageDownloader {
                                     Files.deleteIfExists(Paths.get(imageName));
                                     consecutiveDuplicates++;
                                     isDuplicate = true;
-                                    // 将删除的文件信息添加到imageMap，并标记为deleted状态
                                     imageMap.put(imageName, md5);
                                     logEvent("duplicate_file", "file", imageName, "md5", md5, "status", "deleted");
                                 }
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                            } catch (IOException | JSONException e) {
+                                logEvent("cache_read_error", "error", e.getMessage());
                             }
                         }
                         
@@ -259,7 +262,6 @@ public class ImageDownloader {
                             logEvent("download_success", "file", imageName, "md5", md5);
                             imageMap.put(imageName, md5);
                             consecutiveDuplicates = 0;
-                            fileIndex++;
                             md5Set.add(md5);
                         }
                         
@@ -270,77 +272,100 @@ public class ImageDownloader {
                                 totalProgressLabel.setText("已终止：" + terminateReason);
                                 totalProgressBar.setValue(100);
                             });
-                            // 在终止前写入最后的JSON记录
                             writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                             return;
                         }
 
-
                         writeToJson(imageMap, downloadPath + "/a_image_info.json", apiUrl);
                     }
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             } catch (IOException | NoSuchAlgorithmException e) {
-                logEvent("error", "file", imageName, "error", e.getMessage());
-                e.printStackTrace();
+                logEvent("download_error", "file", imageName, "error", e.getMessage());
+            }
+            
+            // 应用请求延迟
+            if (requestDelay > 0) {
+                try {
+                    Thread.sleep(requestDelay);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
         }
     }
 
     private static String processImageUrl(String apiUrl) {
         try {
-            // 尝试连接API获取响应
             URL url = new URL(apiUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
 
-            // 读取响应内容
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-
-            String responseStr = response.toString();
-            // 检查响应是否为JSON格式
-            if (responseStr.trim().startsWith("{")) {
-                try {
-                    JSONObject json = new JSONObject(responseStr);
-                    // 尝试获取imgurl或url字段
-                    String imageUrl = null;
-                    if (json.has("imgurl")) {
-                        imageUrl = json.getString("imgurl");
-                    } else if (json.has("url")) {
-                        imageUrl = json.getString("url");
-                    } else if (json.has("data")) {
-                        imageUrl = json.getString("data"); 
-                    } else if (json.has("image")) {
-                        imageUrl = json.getString("image");
-                    } else if (json.has("link")) {
-                        imageUrl = json.getString("link"); 
-                    } else if (json.has("src")) {
-                        imageUrl = json.getString("src"); 
-                    } else if (json.has("image_url")) {
-                        imageUrl = json.getString("image_url"); 
-                    } else if (json.has("acgurl")) {
-                        imageUrl = json.getString("acgurl"); 
-                    } 
-
-                    if (imageUrl != null) {
-                        // 处理URL中的转义字符
-                        return imageUrl.replace("\\/", "/");
-                    }
-                } catch (JSONException e) {
-                    logEvent("json_parse_error", "error", e.getMessage());
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
                 }
+
+                String responseStr = response.toString();
+                if (responseStr.trim().startsWith("{")) {
+                    try {
+                        JSONObject json = new JSONObject(responseStr);
+                        String mediaUrl = null;
+                        
+                        if (isVideoMode) {
+                            if (json.has("video_url")) {
+                                mediaUrl = json.getString("video_url");
+                            } else if (json.has("video")) {
+                                mediaUrl = json.getString("video");
+                            } else if (json.has("vid")) {
+                                mediaUrl = json.getString("vid");
+                            } else if (json.has("video_src")) {
+                                mediaUrl = json.getString("video_src");
+                            } else if (json.has("mp4")) {
+                                mediaUrl = json.getString("mp4");
+                            } else if (json.has("flv")) {
+                                mediaUrl = json.getString("flv");
+                            } else if (json.has("webm")) {
+                                mediaUrl = json.getString("webm");
+                            }
+                        }
+                        
+                        if (mediaUrl == null) {
+                            if (json.has("imgurl")) {
+                                mediaUrl = json.getString("imgurl");
+                            } else if (json.has("url")) {
+                                mediaUrl = json.getString("url");
+                            } else if (json.has("data")) {
+                                mediaUrl = json.getString("data"); 
+                            } else if (json.has("image")) {
+                                mediaUrl = json.getString("image");
+                            } else if (json.has("link")) {
+                                mediaUrl = json.getString("link"); 
+                            } else if (json.has("src")) {
+                                mediaUrl = json.getString("src"); 
+                            } else if (json.has("image_url")) {
+                                mediaUrl = json.getString("image_url"); 
+                            } else if (json.has("acgurl")) {
+                                mediaUrl = json.getString("acgurl"); 
+                            } 
+                        }
+
+                        if (mediaUrl != null) {
+                            return mediaUrl.replace("\\/", "/");
+                        }
+                    } catch (JSONException e) {
+                        logEvent("json_parse_error", "error", e.getMessage());
+                    }
+                }
+                return apiUrl.replace("\\/", "/");
             }
-            // 如果不是JSON或没有找到图片URL，直接返回原始URL
-            return apiUrl.replace("\\/", "/");
+        } catch (java.net.MalformedURLException e) {
+            logEvent("url_format_error", "error", e.getMessage());
+            return apiUrl;
         } catch (IOException e) {
             logEvent("url_process_error", "error", e.getMessage());
             return apiUrl;
@@ -351,76 +376,48 @@ public class ImageDownloader {
             JProgressBar totalProgressBar, JLabel totalProgressLabel) {
         int maxRetries = 10;
         int retryCount = 0;
-        int retryInterval = 5000; // 5秒
+        long retryInterval = 5000L;
         
         while (retryCount < maxRetries) {
-            try {
-                if (retryCount > 0) {
-                    final int currentRetry = retryCount;
-                    SwingUtilities.invokeLater(() -> {
-                        totalProgressLabel.setText("重试次数: " + currentRetry + "/" + maxRetries);
-                    });
-                    Thread.sleep(retryInterval);
-                }
-                
-                // 处理图片URL
-                String processedUrl = processImageUrl(imageUrl);
-                URL url = new URL(processedUrl);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(10000); // 设置连接超时10秒
-                connection.setReadTimeout(10000);    // 设置读取超时10秒
-                
-                // 设置浏览器指纹和UA
-                if (browserFingerprint == null || userAgent == null) {
-                    generateBrowserIdentity();
-                }
-                connection.setRequestProperty("User-Agent", userAgent);
-                connection.setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
-                connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
-                connection.setRequestProperty("Sec-Ch-Ua", browserFingerprint);
-                connection.setRequestProperty("Sec-Ch-Ua-Platform", "\"Windows\"");
-                connection.setRequestProperty("Sec-Fetch-Dest", "image");
-                connection.setRequestProperty("Sec-Fetch-Mode", "no-cors");
-                connection.setRequestProperty("Sec-Fetch-Site", "cross-site");
-
-                // 检测图片格式
-                if (detectedImageFormat == null) {
-                    String contentType = connection.getContentType();
-                    if (contentType != null) {
-                        if (contentType.contains("jpeg") || contentType.contains("jpg")) {
-                            detectedImageFormat = "jpg";
-                        } else if (contentType.contains("png")) {
-                            detectedImageFormat = "png";
-                        } else if (contentType.contains("gif")) {
-                            detectedImageFormat = "gif";
-                        } else if (contentType.contains("webp")) {
-                            detectedImageFormat = "webp";
-                        } else if (contentType.contains("bmp")) {
-                            detectedImageFormat = "bmp";
-                        }
-                        logEvent("image_format_detected", "format", detectedImageFormat);
+            if (isTerminating) {
+                return false;
+            }
+            
+            if (retryCount > 0) {
+                final int currentRetry = retryCount;
+                SwingUtilities.invokeLater(() -> {
+                    totalProgressLabel.setText("重试次数: " + currentRetry + "/" + maxRetries);
+                });
+                long startTime = System.currentTimeMillis();
+                while (System.currentTimeMillis() - startTime < retryInterval && !isTerminating) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return false;
                     }
                 }
-                
-                int fileSize = connection.getContentLength();
-                InputStream inputStream = new BufferedInputStream(connection.getInputStream(), 8192);
-                BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageName), 8192);
-                
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                long totalBytesRead = 0;
-                
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
-                    
-
+                if (isTerminating) {
+                    return false;
                 }
+            }
+            
+            try {
+                String processedUrl = processImageUrl(imageUrl);
+                URL url = new URL(processedUrl);
                 
-                outputStream.flush();
-                outputStream.close();
-                inputStream.close();
+                try (InputStream inputStream = new BufferedInputStream(url.openStream(), 8192);
+                     BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageName), 8192)) {
+                    
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    
+                    while ((bytesRead = inputStream.read(buffer)) != -1 && !isTerminating) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+                    
+                    outputStream.flush();
+                }
                 
                 SwingUtilities.invokeLater(() -> {
                     if (totalProgressBar.getParent().isAncestorOf(retryLabel)) {
@@ -432,8 +429,10 @@ public class ImageDownloader {
                 });
                 
                 return true;
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+            } catch (java.net.MalformedURLException e) {
+                logEvent("url_format_error", "file", imageName, "error", e.getMessage());
+                return false;
+            } catch (IOException e) {
                 retryCount++;
                 logEvent("download_retry", "file", imageName, "retry_count", retryCount, "error", e.getMessage());
                 SwingUtilities.invokeLater(() -> {
@@ -459,13 +458,13 @@ public class ImageDownloader {
 
     private static String calculateMD5(File file) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("MD5");
-        FileInputStream fis = new FileInputStream(file);
-        byte[] byteArray = new byte[1024];
-        int bytesCount = 0;
-        while ((bytesCount = fis.read(byteArray)) != -1) {
-            digest.update(byteArray, 0, bytesCount);
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] byteArray = new byte[1024];
+            int bytesCount;
+            while ((bytesCount = fis.read(byteArray)) != -1) {
+                digest.update(byteArray, 0, bytesCount);
+            }
         }
-        fis.close();
         byte[] bytes = digest.digest();
         BigInteger bigInt = new BigInteger(1, bytes);
         StringBuilder hashText = new StringBuilder(bigInt.toString(16));
@@ -494,22 +493,26 @@ public class ImageDownloader {
                     for (int i = 0; i < array.length(); i++) {
                         JSONObject obj = array.getJSONObject(i);
                         String name = obj.getString("modified_name");
+                        // 读取type字段，如果不存在则默认为image
+                        String type = obj.has("type") ? obj.getString("type") : "image";
                         JsonRecord record = new JsonRecord(
                             obj.getString("source_url"),
                             name,
                             obj.getLong("file_size"),
                             obj.getString("md5"),
-                            obj.getString("status")
+                            obj.getString("status"),
+                            type
                         );
                         existingRecords.put(name, record);
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException | JSONException e) {
+                logEvent("json_read_error", "error", e.getMessage());
             }
         }
         
         // 用新的信息更新记录
+        String currentType = isVideoMode ? "video" : "image";
         for (Map.Entry<String, String> entry : imageMap.entrySet()) {
             String imagePath = entry.getKey();
             String md5 = entry.getValue();
@@ -521,7 +524,7 @@ public class ImageDownloader {
                 boolean exists = file.exists();
                 long fileSize = exists ? file.length() : 0;
                 String status = exists ? "saved" : "deleted";
-                existingRecords.put(fileName, new JsonRecord(apiUrl, fileName, fileSize, md5, status));
+                existingRecords.put(fileName, new JsonRecord(apiUrl, fileName, fileSize, md5, status, currentType));
             }
         }
         
@@ -538,7 +541,8 @@ public class ImageDownloader {
                 writer.write("    \"modified_name\": \"" + record.name + "\",\n");
                 writer.write("    \"file_size\": " + record.fileSize + ",\n");
                 writer.write("    \"md5\": \"" + record.md5 + "\",\n");
-                writer.write("    \"status\": \"" + record.status + "\"\n");
+                writer.write("    \"status\": \"" + record.status + "\",\n");
+                writer.write("    \"type\": \"" + record.type + "\"\n");
                 writer.write("  }");
                 first = false;
             }
@@ -552,13 +556,15 @@ public class ImageDownloader {
         long fileSize;
         String md5;
         String status;
+        String type; // "image" 或 "video"
         
-        JsonRecord(String sourceUrl, String name, long fileSize, String md5, String status) {
+        JsonRecord(String sourceUrl, String name, long fileSize, String md5, String status, String type) {
             this.sourceUrl = sourceUrl;
             this.name = name;
             this.fileSize = fileSize;
             this.md5 = md5;
             this.status = status;
+            this.type = type;
         }
     }
     

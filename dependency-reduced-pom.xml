@@ -8,10 +8,7 @@
     <sourceDirectory>src</sourceDirectory>
     <resources>
       <resource>
-        <directory>src</directory>
-        <includes>
-          <include>resources/**</include>
-        </includes>
+        <directory>src/resources</directory>
       </resource>
     </resources>
     <plugins>
@@ -35,7 +32,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>src.Main</mainClass>
+                  <mainClass>Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>
